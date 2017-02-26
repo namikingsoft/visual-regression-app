@@ -1,0 +1,8 @@
+@import './variables';
+
+body {
+  background-color: $body-background-color;
+  font-family: 'Noto Sans Japanese', serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
