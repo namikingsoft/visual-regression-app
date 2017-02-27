@@ -4,11 +4,14 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
+    "heroku-postbuild": "NODE_PATH=src npm run build",
+    "build": "NODE_ENV=production webpack --config webpack.config.prod.js",
     "type": "flow",
     "lint": "eslint src test",
     "spec": "NODE_PATH=src mocha test/**/*.spec.js",
     "nodemon": "NODE_PATH=src nodemon -e js,json,yml -w src/backends -w src/index.js",
     "start": "npm run nodemon -- --exec babel-node src/index.js",
+    "start:prod": "NODE_PATH=src NODE_ENV=production babel-node src/index.js",
     "test": "npm run type && npm run lint && npm run spec",
     "test:watch": "npm run spec -- --watch"
   },

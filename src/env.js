@@ -21,6 +21,8 @@ const getOrDie:
 
 export const cryptSecret = getOrDie('CRYPT_SECRET');
 export const port = Number(env.PORT || 3000);
-export const herokuAppName = env.HEROKU_APP_NAME;
 export const nodeEnv = env.NODE_ENV || 'development';
 export const workDirPath = '/tmp/imagediff';
+export const herokuAppName = env.HEROKU_APP_NAME;
+export const appUri = herokuAppName ?
+  `https://${herokuAppName}.herokuapp.com` : `http://localhost:${port}`;

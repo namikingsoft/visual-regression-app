@@ -44,7 +44,7 @@ export const startProduction:
 export const main:
   void => Promise<void>
 = async () => {
-  const isProd = !!env.herokuAppName;
+  const isProd = env.nodeEnv === 'production';
   const startServer = isProd ? startProduction : startDevelopment;
   await del(env.workDirPath, { force: true });
   await mkdir(env.workDirPath);

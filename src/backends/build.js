@@ -62,7 +62,7 @@ export const build:
   });
   await putFile(resultJsonPath)(JSON.stringify(result));
   post()(slackIncoming)({
-    text: `Finish test by <http://localhost:3000/api/v1/builds/${encoded}|here>`,
+    text: `Finish test by <${env.appUri}/api/v1/builds/${encoded}|here>`,
   });
 })
 
