@@ -1,7 +1,7 @@
 // @flow
 // import cookie from 'react-cookie';
 import type { Middleware } from 'redux';
-import type { Action } from 'action';
+import type { Action } from 'actions';
 
 export const cookieMiddleware:
   Middleware<any, Action>

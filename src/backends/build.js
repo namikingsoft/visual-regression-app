@@ -62,7 +62,7 @@ export const build:
   });
   await putFile(resultJsonPath)(JSON.stringify(result));
   post()(slackIncoming)({
-    text: `Finish test by <${env.appUri}/api/v1/builds/${encoded}|here>`,
+    text: `Finish test by <${env.appUri}/builds/${encoded}|here>`,
   });
 })
 
@@ -72,15 +72,16 @@ export const build:
   const hashed = hash(identifier);
   const dirpath = `${env.workDirPath}/${hashed}`;
   const jsonPath = `${dirpath}/index.json`;
-  res.send(
-    JSON.parse(await getTextFile(jsonPath))
-    .map(x => ({
-      ...x,
-      actualImagePath: `/assets/${hashed}/actual${x.path}`,
-      expectImagePath: `/assets/${hashed}/expect{x.path}`,
-      diffImagePath: `/assets/${hashed}/diff{x.path}`,
-    })),
-  );
+  res.send({
+    ...identifier,
+    images: JSON.parse(await getTextFile(jsonPath))
+      .map(x => ({
+        ...x,
+        actualImagePath: `/assets/${hashed}/actual${x.path}`,
+        expectImagePath: `/assets/${hashed}/expect${x.path}`,
+        diffImagePath: `/assets/${hashed}/diff${x.path}`,
+      })),
+  });
 });
 
 export default build;

@@ -3,8 +3,8 @@ export default {
     app: {
       name: 'Image Diff',
     },
-    test: {
-      title: 'Test',
+    diffBuild: {
+      title: '画像比較',
     },
   },
 };

@@ -9,11 +9,11 @@ type Props = {
   t: TFunction,
 };
 
-const TestPage = ({ t }: Props) =>
-  <div>{t('test.title')}</div>
+const NotFoundPage = ({ t }: Props) =>
+  <div>{t('notFound.title')}</div>
 ;
 
 export default compose(
   translate(''),
-  setDocumentTitle(({ t }: Props) => t('test.title')),
-)(TestPage);
+  setDocumentTitle(({ t }: Props) => t('notFound.title')),
+)(NotFoundPage);

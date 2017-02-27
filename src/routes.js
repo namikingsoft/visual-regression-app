@@ -1,18 +1,23 @@
 // @flow
 import Root from 'containers/Root';
-import Test from 'pages/Test';
-import Through from 'components/Through';
+import DiffBuildDetail from 'pages/DiffBuildDetail';
+import NotFound from 'pages/NotFound';
+import fetchDiffBuild from 'highorders/fetchDiffBuild';
 
 export default {
   path: '/',
   component: Root,
   indexRoute: {
-    component: Through,
+    component: NotFound,
   },
   childRoutes: [
     {
-      path: 'test',
-      component: Test,
+      path: 'builds/:encoded',
+      component: fetchDiffBuild(DiffBuildDetail),
+    },
+    {
+      path: '*',
+      component: NotFound,
     },
   ],
 };
