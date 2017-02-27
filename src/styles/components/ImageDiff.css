@@ -1,0 +1,19 @@
+@import '../variables';
+
+.my {
+  position: relative;
+
+  & + & {
+    margin-top: 50px;
+  }
+
+  &Percentage {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  img {
+    cursor: pointer;
+  }
+}

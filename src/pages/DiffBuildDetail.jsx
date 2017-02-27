@@ -6,6 +6,7 @@ import { compose } from 'recompose';
 import type { TFunction } from 'i18next';
 import { listDiffImages } from 'domains/DiffBuild';
 import type { DiffBuild } from 'domains/DiffBuild';
+import ImageDiff from 'components/ImageDiff';
 import { setDocumentTitle } from 'highorders/setDocumentTitle';
 
 type Props = {
@@ -15,9 +16,9 @@ type Props = {
 
 const DiffBuildDetail = ({ diffBuild, t }: Props) =>
   <div>
-    <h1>{t('diffBuild.title')}</h1>
+    <h2>{t('diffBuild.title')}</h2>
     {listDiffImages(diffBuild).map(x => (
-      <img src={x.diffImagePath} alt="" />
+      <ImageDiff key={x.path} value={x} />
     ))}
   </div>
 ;

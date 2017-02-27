@@ -109,7 +109,7 @@ module.exports = { // eslint-disable-line immutable/no-mutation
   },
   devServer: {
     hot: true,
-    stats: 'none',
+    // stats: 'none',
     // TODO: not work
     // historyApiFallback: true,
   },
