@@ -70,6 +70,7 @@
     "mocha": "^3.2.0",
     "mock-fs": "^4.1.0",
     "nock": "^9.0.7",
+    "nodemon": "^1.11.0",
     "postcss-color-hex-alpha": "^2.0.0",
     "postcss-import": "^9.1.0",
     "postcss-importantly": "0.0.7",
