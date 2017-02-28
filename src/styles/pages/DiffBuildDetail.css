@@ -1,0 +1,7 @@
+@import '../variables';
+
+.my {
+  &Header {
+    margin-bottom: 30px;
+  }
+}

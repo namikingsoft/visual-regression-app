@@ -1,7 +1,8 @@
 // @flow
 import type { $Application } from 'express';
 import del from 'del';
-import { pipe } from 'ramda';
+import { pipe, filter, identity, is, cond, always, reduce, map, T } from 'ramda';
+import { andThen } from 'utils/functional';
 import { getArtifacts, saveArtifacts } from 'domains/CircleCI';
 import { createImageDiffByDir } from 'domains/ImageDiff';
 import { encode, decode, hash } from 'utils/crypt';
@@ -22,15 +23,31 @@ export const build:
     reponame,
     actualBuildNum,
     expectBuildNum,
+    pathFilters,
     slackIncoming,
   } = req.body;
   const identifier = {
     token,
     username,
     reponame,
+    pathFilters,
     actualBuildNum,
     expectBuildNum,
   };
+  const pathFilter = cond([
+    [is(Array),
+      pipe(
+        map(x => y => new RegExp(x).test(y)),
+        reduce((acc, x) => y => acc(y) && x(y), T),
+      ),
+    ],
+    [is(String),
+      x => y => new RegExp(x).test(y),
+    ],
+    [T,
+      always(null),
+    ],
+  ])(pathFilters);
   const encoded = encode(env.cryptSecret)(identifier);
   const hashed = hash(identifier);
   const dirpath = `${env.workDirPath}/${hashed}`;
@@ -43,34 +60,21 @@ export const build:
     token: undefined,
   });
   res.end();
+  await del(dirpath, { force: true });
   const commonBuildParam = {
     vcsType: 'github',
     username,
     project: reponame,
   };
-  await del(dirpath, { force: true });
-  await pipe(
+  const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
     getArtifacts(token),
     andThen(pipe(
-      saveArtifacts(token)(actualDirPath),
+      pathFilter ? filter(x => pathFilter(x.path)) : identity,
+      saveArtifacts(token)(saveDirPath),
     )),
-    vcsType: 'github',
-    username,
-    project: reponame,
-    buildNum: actualBuildNum,
-  });
-  await downloadArtifacts(token)(actualDirPath)({
-    vcsType: 'github',
-    username,
-    project: reponame,
-    buildNum: actualBuildNum,
-  });
-  await downloadArtifacts(token)(expectDirPath)({
-    vcsType: 'github',
-    username,
-    project: reponame,
-    buildNum: expectBuildNum,
-  });
+  )({ ...commonBuildParam, buildNum });
+  await saveFilteredArtifacts(actualBuildNum)(actualDirPath);
+  await saveFilteredArtifacts(expectBuildNum)(expectDirPath);
   const result = await createImageDiffByDir({
     actualImage: actualDirPath,
     expectedImage: expectDirPath,

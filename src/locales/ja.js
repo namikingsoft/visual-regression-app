@@ -4,7 +4,10 @@ export default {
       name: 'Image Diff',
     },
     diffBuild: {
-      title: '画像比較',
+      title: 'Build Detail',
+      diff: 'Difference',
+      actual: 'Actual',
+      expect: 'Expected',
     },
     notFound: {
       title: '404 Page Not Found',

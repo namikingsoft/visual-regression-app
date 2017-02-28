@@ -1,5 +1,5 @@
 // @flow
-import { pipe, map, filter } from 'ramda';
+import { pipe, map } from 'ramda';
 import { andThen, returnPromise, returnPromiseAll, camelize } from 'utils/functional';
 import { get } from 'utils/request';
 import { putFile } from 'utils/file';

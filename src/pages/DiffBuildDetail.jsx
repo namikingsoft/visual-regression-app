@@ -4,10 +4,12 @@ import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import { compose } from 'recompose';
 import type { TFunction } from 'i18next';
+import { Grid } from 'semantic-ui-react';
 import { listDiffImages } from 'domains/DiffBuild';
 import type { DiffBuild } from 'domains/DiffBuild';
 import ImageDiff from 'components/ImageDiff';
-import { setDocumentTitle } from 'highorders/setDocumentTitle';
+import { setDocumentTitleWithAppName } from 'highorders/setDocumentTitle';
+import style from 'styles/pages/DiffBuildDetail.css';
 
 type Props = {
   diffBuild: DiffBuild,
@@ -16,7 +18,33 @@ type Props = {
 
 const DiffBuildDetail = ({ diffBuild, t }: Props) =>
   <div>
-    <h2>{t('diffBuild.title')}</h2>
+    <Grid className={style.myHeader}>
+      <Grid.Row columns={3}>
+        <Grid.Column>
+          <h3>
+            {t('diffBuild.diff')}
+          </h3>
+        </Grid.Column>
+        <Grid.Column>
+          <h3>
+            {t('diffBuild.actual')}
+            &nbsp;
+            <a href={`https://circleci.com/gh/${diffBuild.username}/${diffBuild.reponame}/${diffBuild.actualBuildNum}`} target="self">
+              {`#${diffBuild.actualBuildNum}`}
+            </a>
+          </h3>
+        </Grid.Column>
+        <Grid.Column>
+          <h3>
+            {t('diffBuild.expect')}
+            &nbsp;
+            <a href={`https://circleci.com/gh/${diffBuild.username}/${diffBuild.reponame}/${diffBuild.expectBuildNum}`} target="self">
+              {`#${diffBuild.expectBuildNum}`}
+            </a>
+          </h3>
+        </Grid.Column>
+      </Grid.Row>
+    </Grid>
     {listDiffImages(diffBuild).map(x => (
       <ImageDiff key={x.path} value={x} />
     ))}
@@ -26,5 +54,5 @@ const DiffBuildDetail = ({ diffBuild, t }: Props) =>
 export default compose(
   translate(''),
   connect(({ diffBuild }) => ({ diffBuild })),
-  setDocumentTitle(({ t }: Props) => t('diffBuild.title')),
+  setDocumentTitleWithAppName(({ t }: Props) => t('diffBuild.title')),
 )(DiffBuildDetail);

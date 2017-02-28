@@ -1,5 +1,5 @@
 // @flow
-import { pipe, filter } from 'ramda';
+import { pipe, filter, sortBy } from 'ramda';
 import type { Reducer } from 'redux';
 import type { Action } from 'actions';
 import * as API from 'domains/API';
@@ -38,6 +38,7 @@ export const listDiffImages:
 = pipe(
   x => x.images,
   filter(x => x.total > 0),
+  sortBy(x => -x.total),
 );
 
 export const getDiffBuild:
