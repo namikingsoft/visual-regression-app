@@ -1,7 +1,8 @@
 // @flow
 import type { $Application } from 'express';
 import del from 'del';
-import { downloadArtifacts } from 'domains/CircleCI';
+import { pipe } from 'ramda';
+import { getArtifacts, saveArtifacts } from 'domains/CircleCI';
 import { createImageDiffByDir } from 'domains/ImageDiff';
 import { encode, decode, hash } from 'utils/crypt';
 import { post } from 'utils/request';
@@ -42,7 +43,22 @@ export const build:
     token: undefined,
   });
   res.end();
+  const commonBuildParam = {
+    vcsType: 'github',
+    username,
+    project: reponame,
+  };
   await del(dirpath, { force: true });
+  await pipe(
+    getArtifacts(token),
+    andThen(pipe(
+      saveArtifacts(token)(actualDirPath),
+    )),
+    vcsType: 'github',
+    username,
+    project: reponame,
+    buildNum: actualBuildNum,
+  });
   await downloadArtifacts(token)(actualDirPath)({
     vcsType: 'github',
     username,

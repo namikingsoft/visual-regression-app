@@ -7,10 +7,11 @@
     margin-top: 50px;
   }
 
-  &Percentage {
-    position: absolute;
-    top: 0;
-    right: 0;
+  &Title {
+  }
+
+  &Percent {
+    margin-right: 1em;
   }
 
   img {

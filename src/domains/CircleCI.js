@@ -88,17 +88,12 @@ export const downloadArtifact:
   )),
 )(artifact.url);
 
-export const downloadArtifacts:
-  Token => DirPath => BuildParam => Promise<any>
+export const saveArtifacts:
+  Token => DirPath => Artifact[] => Promise<any>
 = token => dirpath => pipe(
-  getArtifacts(token),
-  andThen(pipe(
-    filter(x => /login/.test(x.path)),
-    filter(x => /[0-9]\.png$/.test(x.path)),
-    map(pipe(
-      downloadArtifact(token),
-      andThen(data => putFile(`${dirpath}${data.path}`)(data.buffer)),
-    )),
-    returnPromiseAll,
+  map(pipe(
+    downloadArtifact(token),
+    andThen(data => putFile(`${dirpath}${data.path}`)(data.buffer)),
   )),
+  returnPromiseAll,
 );

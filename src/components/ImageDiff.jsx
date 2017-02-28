@@ -1,6 +1,6 @@
 // @flow
 import React from 'react';
-import { Grid, Image, Modal, Label } from 'semantic-ui-react';
+import { Grid, Image, Modal, Label, Icon } from 'semantic-ui-react';
 import type { ImageDiff as ImageDiffType } from 'domains/DiffBuild';
 import style from 'styles/components/ImageDiff.css';
 
@@ -21,9 +21,12 @@ const ModalImage = ({ image }: any) =>
 
 const ImageDiff = ({ value }: Props) =>
   <div className={style.my}>
-    <h4>
-      <Label pointing="below">{`${value.percentage} %`}</Label>
-      &emsp;{value.path}
+    <h4 className={style.myTitle}>
+      <Label className={style.myPercent} size="large" pointing="below">
+        <Icon name="edit" />
+        {`${value.percentage} %`}
+      </Label>
+      {value.path}
     </h4>
     <Grid>
       <Grid.Row columns={3}>
