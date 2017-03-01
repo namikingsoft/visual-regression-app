@@ -48,7 +48,7 @@ const DiffBuildDetail = ({ diffBuild, t }: Props) =>
     {listDiffImages(diffBuild).map(x => (
       <ImageDiff key={x.path} value={x} />
     ))}
-    <Accordion>
+    <Accordion className={style.myLittleDiffImages}>
       <Accordion.Title>
         <Icon name="dropdown" />
         Little difference images
