@@ -37,16 +37,16 @@ export const listDiffImages:
   DiffBuild => ImageDiff[]
 = pipe(
   x => x.images,
-  filter(x => x.total > 0.01),
-  sortBy(x => -x.total),
+  filter(x => x.percentage > 0.01),
+  sortBy(x => -x.percentage),
 );
 
 export const listLittleDiffImages:
   DiffBuild => ImageDiff[]
 = pipe(
   x => x.images,
-  filter(x => 0 < x.total && x.total < 0.01),
-  sortBy(x => -x.total),
+  filter(x => x.percentage > 0 && x.percentage < 0.01),
+  sortBy(x => -x.percentage),
 );
 
 export const getDiffBuild:
