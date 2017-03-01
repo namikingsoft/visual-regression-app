@@ -1,74 +1,68 @@
 // @flow
 import type { $Application } from 'express';
+import { Server as ServerSocket } from 'ws';
 import del from 'del';
-import { pipe, filter, identity, is, cond, always, reduce, map, T, mean, max } from 'ramda';
+import { pipe, filter, reduce, map, mean, max } from 'ramda';
 import { andThen } from 'utils/functional';
-import { getArtifacts, saveArtifacts, untilDoneBuild } from 'domains/CircleCI';
+import { getArtifacts, saveArtifacts, untilDoneBuild, getBuildViewUri } from 'domains/CircleCI';
 import { postMessage } from 'domains/Slack';
-import { createImageDiffByDir } from 'domains/ImageDiff';
-import { encode, decode, hash } from 'utils/crypt';
 import { putFile, getTextFile } from 'utils/file';
+import { encode, decode } from 'utils/crypt';
+import {
+  createImageDiffByDir,
+  extractPayload,
+  extractIdentifier,
+  getWorkLocation,
+  createPathFilter,
+} from 'domains/DiffBuildBackend';
+import type { BuildIdentifier, ImageDiff } from 'domains/DiffBuildBackend';
 import * as env from 'env';
 
 type Route = string;
 
-export const build:
+const buildDiffImages:
+  BuildIdentifier => Promise<ImageDiff[]>
+= async identifier => {
+  const { token, username, reponame, actualBuildNum, expectBuildNum } = identifier;
+  const pathFilter = createPathFilter(identifier.pathFilters);
+  const locate = getWorkLocation(env.workDirPath)(identifier);
+  const commonBuildParam = {
+    vcsType: 'github',
+    username,
+    reponame,
+  };
+  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: actualBuildNum });
+  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: expectBuildNum });
+  await del(locate.dirpath, { force: true });
+  const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
+    getArtifacts(token),
+    andThen(pipe(
+      filter(x => pathFilter(x.path)),
+      saveArtifacts(token)(saveDirPath),
+    )),
+  )({ ...commonBuildParam, buildNum });
+  await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
+  await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
+  const results = await createImageDiffByDir({
+    actualImage: locate.actualDirPath,
+    expectedImage: locate.expectDirPath,
+    diffImage: locate.diffDirPath,
+  });
+  await putFile(locate.resultJsonPath)(JSON.stringify(results));
+  return results;
+};
+
+export const buildResource:
   Route => $Application => $Application
 = route => app => (app: any)
 
 .post(route, async (req, res) => {
-  const {
-    token,
-    username,
-    reponame,
-    actualBuildNum,
-    expectBuildNum,
-    pathFilters,
-    slackIncoming,
-  } = req.body;
-  const identifier = {
-    token,
-    username,
-    reponame,
-    pathFilters,
-    actualBuildNum,
-    expectBuildNum,
-  };
-  const pathFilter = cond([
-    [is(Array),
-      pipe(
-        map(x => y => new RegExp(x).test(y)),
-        reduce((acc, x) => y => acc(y) && x(y), T),
-      ),
-    ],
-    [is(String),
-      x => y => new RegExp(x).test(y),
-    ],
-    [T,
-      always(null),
-    ],
-  ])(pathFilters);
+  const { slackIncoming } = extractPayload(req.body);
+  const identifier = extractIdentifier(req.body);
   const encoded = encode(env.cryptSecret)(identifier);
-  const hashed = hash(identifier);
-  const dirpath = `${env.workDirPath}/${hashed}`;
-  const actualDirPath = `${dirpath}/actual`;
-  const expectDirPath = `${dirpath}/expect`;
-  const diffDirPath = `${dirpath}/diff`;
-  const resultJsonPath = `${dirpath}/index.json`;
-  res.status(202).send({
-    ...identifier,
-    token: undefined,
-  });
+  res.status(202).send({ ...identifier, token: undefined });
   res.end();
-  await del(dirpath, { force: true });
-  // start building
-  const commonBuildParam = {
-    vcsType: 'github',
-    username,
-    project: reponame,
-  };
-  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: actualBuildNum });
-  postMessage(slackIncoming)({
+  await postMessage(slackIncoming)({
     attachments: [{
       fallback: 'Start building images ...',
       pretext: 'Start building images ...',
@@ -76,12 +70,20 @@ export const build:
       fields: [
         {
           title: 'Actual Images',
-          value: `https://circleci.com/gh/${username}/${reponame}/${actualBuildNum}`,
+          value: getBuildViewUri({
+            username: identifier.username,
+            reponame: identifier.reponame,
+            buildNum: identifier.actualBuildNum,
+          }),
           short: false,
         },
         {
           title: 'Expected Images',
-          value: `https://circleci.com/gh/${username}/${reponame}/${expectBuildNum}`,
+          value: getBuildViewUri({
+            username: identifier.username,
+            reponame: identifier.reponame,
+            buildNum: identifier.expectBuildNum,
+          }),
           short: false,
         },
       ],
@@ -89,21 +91,7 @@ export const build:
       ts: Math.floor(new Date().getTime() / 1000),
     }],
   });
-  const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
-    getArtifacts(token),
-    andThen(pipe(
-      pathFilter ? filter(x => pathFilter(x.path)) : identity,
-      saveArtifacts(token)(saveDirPath),
-    )),
-  )({ ...commonBuildParam, buildNum });
-  await saveFilteredArtifacts(actualBuildNum)(actualDirPath);
-  await saveFilteredArtifacts(expectBuildNum)(expectDirPath);
-  const results = await createImageDiffByDir({
-    actualImage: actualDirPath,
-    expectedImage: expectDirPath,
-    diffImage: diffDirPath,
-  });
-  await putFile(resultJsonPath)(JSON.stringify(results));
+  const results = await buildDiffImages(identifier);
   const diffCount = filter(x => x.percentage > 0)(results).length;
   const maxPercentage = pipe(
     map(x => x.percentage),
@@ -148,12 +136,10 @@ export const build:
 .get(`${route}/:encoded`, async (req, res) => {
   const { encoded } = req.params;
   const identifier = decode(env.cryptSecret)(encoded);
-  const hashed = hash(identifier);
-  const dirpath = `${env.workDirPath}/${hashed}`;
-  const jsonPath = `${dirpath}/index.json`;
+  const { hashed, resultJsonPath } = getWorkLocation(env.workDirPath)(identifier);
   res.send({
     ...identifier,
-    images: JSON.parse(await getTextFile(jsonPath))
+    images: JSON.parse(await getTextFile(resultJsonPath))
       .map(x => ({
         ...x,
         actualImagePath: `/assets/${hashed}/actual${x.path}`,
@@ -163,4 +149,12 @@ export const build:
   });
 });
 
-export default build;
+export const buildSocket:
+  ServerSocket => ServerSocket
+= wss => wss.on('connection', ws => ws
+  .on('close', () => console.log('Client disconnected'))
+  .on('message', async data => {
+    console.log('received: %s', data);
+    ws.send('asdf');
+  }),
+);

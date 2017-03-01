@@ -18,6 +18,7 @@
   "dependencies": {
     "axios": "^0.15.3",
     "body-parser": "^1.16.1",
+    "bufferutil": "^2.0.1",
     "camelcase": "^4.0.0",
     "compression": "^1.6.2",
     "cookie-parser": "^1.4.3",
@@ -38,7 +39,9 @@
     "recursive-readdir": "^2.1.1",
     "redux": "^3.6.0",
     "semantic-ui-css": "^2.2.9",
-    "semantic-ui-react": "^0.66.0"
+    "semantic-ui-react": "^0.66.0",
+    "utf-8-validate": "^3.0.1",
+    "ws": "^2.2.0"
   },
   "devDependencies": {
     "autoprefixer": "^6.7.5",

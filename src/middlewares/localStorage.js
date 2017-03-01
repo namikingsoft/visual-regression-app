@@ -2,7 +2,7 @@
 import type { Middleware } from 'redux';
 import type { Action } from 'actions';
 
-export const localStorageMiddleware:
+const localStorageMiddleware:
   Middleware<any, Action>
 = () => next => action => next(action);
 

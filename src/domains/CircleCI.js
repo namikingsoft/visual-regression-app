@@ -12,7 +12,7 @@ type DirPath = string;
 type ProjectParam = {
   vcsType: string,
   username: string,
-  project: string,
+  reponame: string,
 };
 
 type BuildNumParam = {
@@ -76,7 +76,7 @@ const buildUri:
 
 const pathProject:
   ProjectParam => Path
-= ({ vcsType, username, project }) => `/project/${vcsType}/${username}/${project}`;
+= ({ vcsType, username, reponame }) => `/project/${vcsType}/${username}/${reponame}`;
 
 const pathBuild:
   BuildParam => Path
@@ -85,6 +85,12 @@ const pathBuild:
 const pathArtifacts:
   BuildParam => Uri
 = x => `${pathBuild(x)}/artifacts`;
+
+export const getBuildViewUri:
+  { username: string, reponame: string, buildNum: number } => Uri
+= ({ username, reponame, buildNum }) => (
+  `https://circleci.com/gh/${username}/${reponame}/${String(buildNum)}`
+);
 
 export const getBuild:
   Token => BuildParam => Promise<Build>

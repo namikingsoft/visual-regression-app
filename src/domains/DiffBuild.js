@@ -5,20 +5,21 @@ import type { Action } from 'actions';
 import * as API from 'domains/API';
 
 export type EncodedIdentifier = string;
+export type Path = string;
 
 export type ImageDiff = {
-  path: string,
-  actualImagePath: string,
-  expectImagePath: string,
-  diffImagePath: string,
+  path: Path,
+  actualImagePath: Path,
+  expectImagePath: Path,
+  diffImagePath: Path,
   total: number,
   percentage: number,
 }
 
 export type DiffBuild = {
-  token: string,
-  username: string,
-  reponame: string,
+  token: Path,
+  username: Path,
+  reponame: Path,
   actualBuildNum: number,
   expectBuildNum: number,
   images: ImageDiff[],

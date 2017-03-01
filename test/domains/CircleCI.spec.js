@@ -36,7 +36,7 @@ describe('domains/CircleCI', () => {
         await getArtifacts('token')({
           vcsType: 'github',
           username: 'user',
-          project: 'repo',
+          reponame: 'repo',
           buildNum: 1,
         }),
         [{

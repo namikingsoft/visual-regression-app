@@ -1,6 +1,7 @@
 // @flow
-import express from 'express';
 import type { $Application } from 'express';
+import { Server as ServerSocket } from 'ws';
+import express from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
@@ -8,15 +9,17 @@ import compression from 'compression';
 type Route = string;
 type DirPath = string;
 
-export const start:
-  number => $Application => Promise<string>
-= port => app => new Promise(
-  (resolve, reject) => app.listen(
-    port, error => (
-      error ? reject(error) : resolve(`http://localhost:${port}`)
-    ),
-  ),
-);
+export const listen:
+  number => $Application => Promise<net$Server>
+= port => app => new Promise((resolve, reject) => {
+  const server = app.listen(port, err => (
+    err ? reject(err) : resolve(server)
+  ));
+});
+
+export const createSocketServer:
+  net$Server => ServerSocket
+= server => new ServerSocket({ server });
 
 export const parse:
   $Application => $Application

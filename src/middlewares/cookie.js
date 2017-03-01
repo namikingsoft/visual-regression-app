@@ -3,7 +3,7 @@
 import type { Middleware } from 'redux';
 import type { Action } from 'actions';
 
-export const cookieMiddleware:
+const cookieMiddleware:
   Middleware<any, Action>
 = () => next => action => next(action);
 
