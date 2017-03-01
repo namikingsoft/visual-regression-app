@@ -4,8 +4,8 @@ import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import { compose } from 'recompose';
 import type { TFunction } from 'i18next';
-import { Grid } from 'semantic-ui-react';
-import { listDiffImages } from 'domains/DiffBuild';
+import { Grid, Accordion, Icon } from 'semantic-ui-react';
+import { listDiffImages, listLittleDiffImages } from 'domains/DiffBuild';
 import type { DiffBuild } from 'domains/DiffBuild';
 import ImageDiff from 'components/ImageDiff';
 import { setDocumentTitleWithAppName } from 'highorders/setDocumentTitle';
@@ -48,6 +48,17 @@ const DiffBuildDetail = ({ diffBuild, t }: Props) =>
     {listDiffImages(diffBuild).map(x => (
       <ImageDiff key={x.path} value={x} />
     ))}
+    <Accordion>
+      <Accordion.Title>
+        <Icon name="dropdown" />
+        Little difference images
+      </Accordion.Title>
+      <Accordion.Content>
+        {listLittleDiffImages(diffBuild).map(x => (
+          <ImageDiff key={x.path} value={x} />
+        ))}
+      </Accordion.Content>
+    </Accordion>
   </div>
 ;
 
