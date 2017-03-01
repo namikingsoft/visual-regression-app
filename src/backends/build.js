@@ -130,7 +130,7 @@ export const build:
         },
         {
           title: 'Difference Count',
-          value: diffCount,
+          value: String(diffCount),
           short: true,
         },
         {
