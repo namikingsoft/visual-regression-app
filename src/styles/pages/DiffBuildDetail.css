@@ -4,4 +4,8 @@
   &Header {
     margin-bottom: 30px;
   }
+  &LittleDiffImages {
+    margin-top: 30px;
+    margin-bottom: 30px;
+  }
 }
