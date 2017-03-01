@@ -104,6 +104,7 @@ export const build:
     diffImage: diffDirPath,
   });
   await putFile(resultJsonPath)(JSON.stringify(results));
+  const diffCount = filter(x => x.percentage > 0)(results).length;
   const maxPercentage = pipe(
     map(x => x.percentage),
     reduce(max, 0),
@@ -128,9 +129,14 @@ export const build:
           short: true,
         },
         {
+          title: 'Difference Count',
+          value: diffCount,
+          short: true,
+        },
+        {
           title: 'Build URL',
           value: `<${env.appUri}/builds/${encoded}|View Image Diff List>`,
-          short: false,
+          short: true,
         },
       ],
       footer: 'Finish building images',
