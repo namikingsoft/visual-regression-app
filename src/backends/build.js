@@ -61,13 +61,13 @@ export const build:
   });
   res.end();
   await del(dirpath, { force: true });
+  // start building
   const commonBuildParam = {
     vcsType: 'github',
     username,
     project: reponame,
   };
   await untilDoneBuild(token)({ ...commonBuildParam, buildNum: actualBuildNum });
-  // start building
   postMessage(slackIncoming)({
     attachments: [{
       fallback: 'Start building images ...',
