@@ -14,7 +14,7 @@ type ImageDiffParam = {
 
 type ImageDiffResult = {
   total: number,
-  difference: number,
+  percentage: number,
   path?: Path,
 };
 

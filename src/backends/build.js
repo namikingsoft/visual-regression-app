@@ -1,12 +1,12 @@
 // @flow
 import type { $Application } from 'express';
 import del from 'del';
-import { pipe, filter, identity, is, cond, always, reduce, map, T } from 'ramda';
+import { pipe, filter, identity, is, cond, always, reduce, map, T, mean, max } from 'ramda';
 import { andThen } from 'utils/functional';
 import { getArtifacts, saveArtifacts } from 'domains/CircleCI';
+import { postMessage } from 'domains/Slack';
 import { createImageDiffByDir } from 'domains/ImageDiff';
 import { encode, decode, hash } from 'utils/crypt';
-import { post } from 'utils/request';
 import { putFile, getTextFile } from 'utils/file';
 import * as env from 'env';
 
@@ -61,6 +61,28 @@ export const build:
   });
   res.end();
   await del(dirpath, { force: true });
+  // start building
+  postMessage(slackIncoming)({
+    attachments: [{
+      fallback: 'Start building images ...',
+      pretext: 'Start building images ...',
+      color: '#cccccc',
+      fields: [
+        {
+          title: 'Actual Images',
+          value: `https://circleci.com/gh/${username}/${reponame}/${actualBuildNum}`,
+          short: false,
+        },
+        {
+          title: 'Expected Images',
+          value: `https://circleci.com/gh/${username}/${reponame}/${expectBuildNum}`,
+          short: false,
+        },
+      ],
+      footer: 'Start building images',
+      ts: Math.floor(new Date().getTime() / 1000),
+    }],
+  });
   const commonBuildParam = {
     vcsType: 'github',
     username,
@@ -75,14 +97,44 @@ export const build:
   )({ ...commonBuildParam, buildNum });
   await saveFilteredArtifacts(actualBuildNum)(actualDirPath);
   await saveFilteredArtifacts(expectBuildNum)(expectDirPath);
-  const result = await createImageDiffByDir({
+  const results = await createImageDiffByDir({
     actualImage: actualDirPath,
     expectedImage: expectDirPath,
     diffImage: diffDirPath,
   });
-  await putFile(resultJsonPath)(JSON.stringify(result));
-  post()(slackIncoming)({
-    text: `Finish test by <${env.appUri}/builds/${encoded}|here>`,
+  await putFile(resultJsonPath)(JSON.stringify(results));
+  const maxPercentage = pipe(
+    map(x => x.percentage),
+    reduce(max, 0),
+  )(results);
+  const avgPercentage = pipe(
+    map(x => x.percentage),
+    mean,
+  )(results);
+  postMessage(slackIncoming)({
+    attachments: [{
+      fallback: 'Finish building images',
+      color: maxPercentage > 0.01 ? '#cc0000' : '#36a64f',
+      fields: [
+        {
+          title: 'Max Percentage',
+          value: `${maxPercentage} %`,
+          short: true,
+        },
+        {
+          title: 'Avarage',
+          value: `${avgPercentage} %`,
+          short: true,
+        },
+        {
+          title: 'Build URL',
+          value: `<${env.appUri}/builds/${encoded}|View Image Diff List>`,
+          short: false,
+        },
+      ],
+      footer: 'Finish building images',
+      ts: Math.floor(new Date().getTime() / 1000),
+    }],
   });
 })
 
