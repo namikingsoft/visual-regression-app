@@ -3,7 +3,7 @@ import type { $Application } from 'express';
 import del from 'del';
 import { pipe, filter, identity, is, cond, always, reduce, map, T, mean, max } from 'ramda';
 import { andThen } from 'utils/functional';
-import { getArtifacts, saveArtifacts } from 'domains/CircleCI';
+import { getArtifacts, saveArtifacts, untilDoneBuild } from 'domains/CircleCI';
 import { postMessage } from 'domains/Slack';
 import { createImageDiffByDir } from 'domains/ImageDiff';
 import { encode, decode, hash } from 'utils/crypt';
@@ -61,6 +61,12 @@ export const build:
   });
   res.end();
   await del(dirpath, { force: true });
+  const commonBuildParam = {
+    vcsType: 'github',
+    username,
+    project: reponame,
+  };
+  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: actualBuildNum });
   // start building
   postMessage(slackIncoming)({
     attachments: [{
@@ -83,11 +89,6 @@ export const build:
       ts: Math.floor(new Date().getTime() / 1000),
     }],
   });
-  const commonBuildParam = {
-    vcsType: 'github',
-    username,
-    project: reponame,
-  };
   const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
     getArtifacts(token),
     andThen(pipe(

@@ -21,6 +21,28 @@ type BuildNumParam = {
 
 export type BuildParam = ProjectParam & BuildNumParam;
 
+export type Build = {
+  status:
+    'retried'
+  | 'canceled'
+  | 'infrastructure_fail'
+  | 'timedout'
+  | 'not_run'
+  | 'running'
+  | 'failed'
+  | 'queued'
+  | 'scheduled'
+  | 'not_running'
+  | 'no_tests'
+  | 'fixed'
+  | 'success',
+  username: string,
+  reponame: string,
+  vcs_type: string,
+  build_num: string,
+  build_url: string,
+};
+
 export type Artifact = {
   path: string,
   prettyPath: string,
@@ -34,6 +56,8 @@ export type ArtifactData = {
 };
 
 const apiBaseUri = 'https://circleci.com/api/v1.1';
+const checkStatusCountLimit = 6; // 1 min
+const checkStatusDeltaMsec = 10 * 1000;
 
 const prefixBaseUri:
   Path => Uri
@@ -61,6 +85,18 @@ const pathBuild:
 const pathArtifacts:
   BuildParam => Uri
 = x => `${pathBuild(x)}/artifacts`;
+
+export const getBuild:
+  Token => BuildParam => Promise<Build>
+= token => pipe(
+  pathBuild,
+  buildUri(token),
+  get(),
+  andThen(pipe(
+    camelize,
+    returnPromise,
+  )),
+);
 
 export const getArtifacts:
   Token => BuildParam => Promise<Artifact[]>
@@ -97,3 +133,20 @@ export const saveArtifacts:
   )),
   returnPromiseAll,
 );
+
+export const isDoneBuild:
+  Build => boolean
+= x => /^(no_tests|timedout|fixed|canceled|success|failed)$/.test(x.status);
+
+export const untilDoneBuild:
+  Token => BuildParam => Promise<Build>
+= token => async param => {
+  /* eslint-disable */
+  for (let i = 0; i < checkStatusCountLimit; i += 1) {
+    const build = await getBuild(token)(param);
+    if (isDoneBuild(build)) return build;
+    await new Promise(resolve => setTimeout(resolve, checkStatusDeltaMsec));
+  }
+  throw new Error('error');
+  /* eslint-enable */
+};
