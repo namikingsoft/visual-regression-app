@@ -56,7 +56,7 @@ export type ArtifactData = {
 };
 
 const apiBaseUri = 'https://circleci.com/api/v1.1';
-const checkStatusCountLimit = 6; // 1 min
+const checkStatusCountLimit = 12; // 2 min
 const checkStatusDeltaMsec = 10 * 1000;
 
 const prefixBaseUri:
