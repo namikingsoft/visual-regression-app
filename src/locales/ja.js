@@ -2,6 +2,7 @@ export default {
   translation: {
     app: {
       name: 'Image Diff',
+      loading: 'Image Building',
     },
     diffBuild: {
       title: 'Build Detail',

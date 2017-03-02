@@ -59,7 +59,10 @@ export const getDiffBuild:
       payload: await API.getDiffBuild(encoded),
     });
   } catch (e) {
-    console.error(e);
+    dispatch({
+      type: 'DiffBuild/RUN',
+      payload: encoded,
+    });
   }
 };
 

@@ -1,10 +1,12 @@
 // @flow
 import type { Dispatch as DispatchOrigin } from 'redux';
-import type { DiffBuild } from 'domains/DiffBuild';
+import type { DiffBuild, EncodedIdentifier } from 'domains/DiffBuild';
 
 export type Action =
-    { type: 'DiffImage/CREATE', payload: DiffBuild }
-  | { type: 'dummy/LOAD' }
+    { type: 'DiffBuild/CREATE', payload: DiffBuild }
+  | { type: 'DiffBuild/RUN', payload: EncodedIdentifier }
+  | { type: 'Loading/START' }
+  | { type: 'Loading/FINISH' }
   ;
 
 export type Dispatch = DispatchOrigin<Action>;
