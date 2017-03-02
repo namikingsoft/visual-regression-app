@@ -6,6 +6,7 @@ import { compose } from 'recompose';
 import type { TFunction } from 'i18next';
 import { Grid, Accordion, Icon } from 'semantic-ui-react';
 import { listDiffImages, listLittleDiffImages } from 'domains/DiffBuild';
+import { getBuildViewUri } from 'domains/CircleCI';
 import type { DiffBuild } from 'domains/DiffBuild';
 import ImageDiff from 'components/ImageDiff';
 import { setDocumentTitleWithAppName } from 'highorders/setDocumentTitle';
@@ -29,7 +30,14 @@ const DiffBuildDetail = ({ diffBuild, t }: Props) =>
           <h3>
             {t('diffBuild.actual')}
             &nbsp;
-            <a href={`https://circleci.com/gh/${diffBuild.username}/${diffBuild.reponame}/${diffBuild.actualBuildNum}`} target="self">
+            <a
+              href={getBuildViewUri({
+                username: diffBuild.username,
+                reponame: diffBuild.reponame,
+                buildNum: diffBuild.actualBuildNum,
+              })}
+              target="self"
+            >
               {`#${diffBuild.actualBuildNum}`}
             </a>
           </h3>
@@ -38,7 +46,14 @@ const DiffBuildDetail = ({ diffBuild, t }: Props) =>
           <h3>
             {t('diffBuild.expect')}
             &nbsp;
-            <a href={`https://circleci.com/gh/${diffBuild.username}/${diffBuild.reponame}/${diffBuild.expectBuildNum}`} target="self">
+            <a
+              href={getBuildViewUri({
+                username: diffBuild.username,
+                reponame: diffBuild.reponame,
+                buildNum: diffBuild.expectBuildNum,
+              })}
+              target="self"
+            >
               {`#${diffBuild.expectBuildNum}`}
             </a>
           </h3>

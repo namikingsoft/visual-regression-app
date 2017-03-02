@@ -105,7 +105,7 @@ export const buildResource:
       postMessage(slackIncoming)({
         attachments: [{
           fallback: 'Finish building images',
-          color: maxPercentage > 0.01 ? '#cc0000' : '#36a64f',
+          color: maxPercentage > identifier.threshold ? '#cc0000' : '#36a64f',
           fields: [
             {
               title: 'Max Percentage',

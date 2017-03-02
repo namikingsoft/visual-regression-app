@@ -22,6 +22,8 @@ export type DiffBuild = {
   reponame: Path,
   actualBuildNum: number,
   expectBuildNum: number,
+  threshold: number,
+  pathFilters: any,
   images: ImageDiff[],
 }
 
@@ -31,24 +33,26 @@ const initialState = {
   reponame: '',
   actualBuildNum: 0,
   expectBuildNum: 0,
+  threshold: 0,
+  pathFilters: [],
   images: [],
 };
 
 export const listDiffImages:
   DiffBuild => ImageDiff[]
-= pipe(
+= build => pipe(
   x => x.images,
-  filter(x => x.percentage > 0.01),
+  filter(x => x.percentage > build.threshold),
   sortBy(x => -x.percentage),
-);
+)(build);
 
 export const listLittleDiffImages:
   DiffBuild => ImageDiff[]
-= pipe(
+= build => pipe(
   x => x.images,
-  filter(x => x.percentage > 0 && x.percentage < 0.01),
+  filter(x => x.percentage > 0 && x.percentage < build.threshold),
   sortBy(x => -x.percentage),
-);
+)(build);
 
 export const getDiffBuild:
   EncodedIdentifier => Dispatch => Promise<any>

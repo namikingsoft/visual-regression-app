@@ -5,10 +5,10 @@ import { returnPromiseAll } from 'utils/functional';
 import { scanDirWithKey } from 'utils/file';
 import { hash } from 'utils/crypt';
 
-type EncodedIdentifier = string;
-type SlackIncoming = string;
 type Path = string;
 type PathFilters = any;
+
+const defaultThreshold = 0.01; // %
 
 export type ImageDiffParam = {
   actualImage: Path,
@@ -26,9 +26,10 @@ export type BuildIdentifier = {
   token: string,
   username: string,
   reponame: string,
-  pathFilters: string[],
   actualBuildNum: number,
   expectBuildNum: number,
+  threshold: number,
+  pathFilters: string[],
 };
 
 export type RequestPayload = BuildIdentifier & {
@@ -65,10 +66,11 @@ export const extractPayload:
   token: x.token,
   username: x.username,
   reponame: x.reponame,
-  pathFilters: x.pathFilters,
   actualBuildNum: x.actualBuildNum,
   expectBuildNum: x.expectBuildNum,
   slackIncoming: x.slackIncoming,
+  pathFilters: x.pathFilters,
+  threshold: x.threshold || defaultThreshold,
 });
 
 export const extractIdentifier:
@@ -77,9 +79,10 @@ export const extractIdentifier:
   token: x.token,
   username: x.username,
   reponame: x.reponame,
-  pathFilters: x.pathFilters,
   actualBuildNum: x.actualBuildNum,
   expectBuildNum: x.expectBuildNum,
+  pathFilters: x.pathFilters,
+  threshold: x.threshold || defaultThreshold,
 });
 
 export const createPathFilter:
