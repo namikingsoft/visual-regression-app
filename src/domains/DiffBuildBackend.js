@@ -10,9 +10,12 @@ type PathFilters = any;
 
 const defaultThreshold = 0.01; // %
 
-export type ImageDiffParam = {
+export type ImageWithoutDiffParam = {
   actualImage: Path,
   expectedImage: Path,
+};
+
+export type ImageDiffParam = ImageWithoutDiffParam & {
   diffImage: Path,
 };
 
@@ -34,6 +37,12 @@ export type BuildIdentifier = {
 
 export type RequestPayload = BuildIdentifier & {
   slackIncoming: string,
+};
+
+export type ImageDiffResult = BuildIdentifier & {
+  newImagePathes: Path[],
+  delImagePathes: Path[],
+  images: ImageDiff[],
 };
 
 export type WorkLocation = {
@@ -126,4 +135,28 @@ export const createImageDiffByDir:
     })),
     returnPromiseAll,
   )(imageMap1);
+};
+
+export const getNewImagePathes:
+  ImageWithoutDiffParam => Promise<Path[]>
+= async ({ actualImage, expectedImage }) => {
+  const imageMap1 = await scanDirWithKey(actualImage);
+  const imageMap2 = await scanDirWithKey(expectedImage);
+  return pipe(
+    keys,
+    filter(x => imageMap1[x] && !imageMap2[x]),
+    map(path => ({ path })),
+  )(imageMap1);
+};
+
+export const getDelImagePathes:
+  ImageWithoutDiffParam => Promise<Path[]>
+= async ({ actualImage, expectedImage }) => {
+  const imageMap1 = await scanDirWithKey(actualImage);
+  const imageMap2 = await scanDirWithKey(expectedImage);
+  return pipe(
+    keys,
+    filter(x => !imageMap1[x] && imageMap2[x]),
+    map(path => ({ path })),
+  )(imageMap2);
 };

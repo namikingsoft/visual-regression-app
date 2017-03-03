@@ -10,27 +10,28 @@ import { putFile, getTextFile } from 'utils/file';
 import { encode, decode } from 'utils/crypt';
 import {
   createImageDiffByDir,
+  getNewImagePathes,
+  getDelImagePathes,
   extractPayload,
   extractIdentifier,
   getWorkLocation,
   createPathFilter,
 } from 'domains/DiffBuildBackend';
-import type { BuildIdentifier, ImageDiff } from 'domains/DiffBuildBackend';
+import type {
+  BuildIdentifier,
+  ImageDiffResult,
+} from 'domains/DiffBuildBackend';
 import * as env from 'env';
 
 type Route = string;
 
 const buildDiffImages:
-  BuildIdentifier => Promise<ImageDiff[]>
+  BuildIdentifier => Promise<ImageDiffResult>
 = async identifier => {
   const { token, username, reponame, actualBuildNum, expectBuildNum } = identifier;
   const pathFilter = createPathFilter(identifier.pathFilters);
   const locate = getWorkLocation(env.workDirPath)(identifier);
-  const commonBuildParam = {
-    vcsType: 'github',
-    username,
-    reponame,
-  };
+  const commonBuildParam = { vcsType: 'github', username, reponame };
   await untilDoneBuild(token)({ ...commonBuildParam, buildNum: actualBuildNum });
   await untilDoneBuild(token)({ ...commonBuildParam, buildNum: expectBuildNum });
   await del(locate.dirpath, { force: true });
@@ -43,13 +44,22 @@ const buildDiffImages:
   )({ ...commonBuildParam, buildNum });
   await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
   await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
-  const results = await createImageDiffByDir({
+  const pairPath = {
     actualImage: locate.actualDirPath,
     expectedImage: locate.expectDirPath,
+  };
+  const images = await createImageDiffByDir({
+    ...pairPath,
     diffImage: locate.diffDirPath,
   });
-  await putFile(locate.resultJsonPath)(JSON.stringify(results));
-  return results;
+  const result = {
+    ...identifier,
+    newImagePathes: await getNewImagePathes(pairPath),
+    delImagePathes: await getDelImagePathes(pairPath),
+    images,
+  };
+  await putFile(locate.resultJsonPath)(JSON.stringify(result));
+  return result;
 };
 
 export const buildResource:
@@ -92,16 +102,16 @@ export const buildResource:
           ts: Math.floor(new Date().getTime() / 1000),
         }],
       });
-      const results = await buildDiffImages(identifier);
-      const diffCount = filter(x => x.percentage > 0)(results).length;
+      const result = await buildDiffImages(identifier);
+      const diffCount = filter(x => x.percentage > 0)(result.images).length;
       const maxPercentage = pipe(
         map(x => x.percentage),
         reduce(max, 0),
-      )(results);
+      )(result.images);
       const avgPercentage = pipe(
         map(x => x.percentage),
         mean,
-      )(results);
+      )(result.images);
       postMessage(slackIncoming)({
         attachments: [{
           fallback: 'Finish building images',
@@ -147,15 +157,23 @@ export const buildResource:
     const { encoded } = req.params;
     const identifier = decode(env.cryptSecret)(encoded);
     const { hashed, resultJsonPath } = getWorkLocation(env.workDirPath)(identifier);
+    const build = JSON.parse(await getTextFile(resultJsonPath));
     res.status(200).send({
-      ...identifier,
-      images: JSON.parse(await getTextFile(resultJsonPath))
-        .map(x => ({
-          ...x,
-          actualImagePath: `/assets/${hashed}/actual${x.path}`,
-          expectImagePath: `/assets/${hashed}/expect${x.path}`,
-          diffImagePath: `/assets/${hashed}/diff${x.path}`,
-        })),
+      ...build,
+      images: build.images.map(x => ({
+        ...x,
+        actualImagePath: `/assets/${hashed}/actual${x.path}`,
+        expectImagePath: `/assets/${hashed}/expect${x.path}`,
+        diffImagePath: `/assets/${hashed}/diff${x.path}`,
+      })),
+      newImages: build.newImagePathes.map(path => ({
+        path,
+        imagePath: `/assets/${hashed}/actual${path}`,
+      })),
+      delImages: build.delImagePathes.map(path => ({
+        path,
+        imagePath: `/assets/${hashed}/expect${path}`,
+      })),
     });
   } catch (error) {
     res.status(400).send({ error });

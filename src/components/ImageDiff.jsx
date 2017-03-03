@@ -1,23 +1,13 @@
 // @flow
 import React from 'react';
-import { Grid, Image, Modal, Label, Icon } from 'semantic-ui-react';
+import { Grid, Image, Label, Icon } from 'semantic-ui-react';
+import ModalImage from 'components/ModalImage';
 import type { ImageDiff as ImageDiffType } from 'domains/DiffBuild';
 import style from 'styles/components/ImageDiff.css';
 
 type Props = {
   value: ImageDiffType
 };
-
-const ModalImage = ({ image }: any) =>
-  <Modal
-    trigger={image}
-    size="large"
-    dimmer="blurring"
-    basic
-  >
-    <Modal.Content>{image}</Modal.Content>
-  </Modal>
-;
 
 const ImageDiff = ({ value }: Props) =>
   <div className={style.my}>

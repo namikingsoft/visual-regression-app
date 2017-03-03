@@ -14,7 +14,12 @@ export type ImageDiff = {
   diffImagePath: Path,
   total: number,
   percentage: number,
-}
+};
+
+export type ImageInfo = {
+  path: Path,
+  imagePath: Path,
+};
 
 export type DiffBuild = {
   token: Path,
@@ -22,10 +27,12 @@ export type DiffBuild = {
   reponame: Path,
   actualBuildNum: number,
   expectBuildNum: number,
+  newImages: ImageInfo[],
+  delImages: ImageInfo[],
   threshold: number,
   pathFilters: any,
   images: ImageDiff[],
-}
+};
 
 const initialState = {
   token: '',
@@ -35,6 +42,8 @@ const initialState = {
   expectBuildNum: 0,
   threshold: 0,
   pathFilters: [],
+  newImages: [],
+  delImages: [],
   images: [],
 };
 

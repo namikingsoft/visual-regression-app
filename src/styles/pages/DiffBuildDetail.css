@@ -4,6 +4,14 @@
   &Header {
     margin-bottom: 30px;
   }
+  &List {
+    &Item {
+      & > img {
+        width: 65px;
+        cursor: pointer;
+      }
+    }
+  }
   &LittleDiffImages {
     margin-top: 30px;
     margin-bottom: 30px;
