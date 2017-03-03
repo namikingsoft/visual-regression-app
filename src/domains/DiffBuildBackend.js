@@ -145,7 +145,6 @@ export const getNewImagePathes:
   return pipe(
     keys,
     filter(x => imageMap1[x] && !imageMap2[x]),
-    map(path => ({ path })),
   )(imageMap1);
 };
 
@@ -157,6 +156,5 @@ export const getDelImagePathes:
   return pipe(
     keys,
     filter(x => !imageMap1[x] && imageMap2[x]),
-    map(path => ({ path })),
   )(imageMap2);
 };
