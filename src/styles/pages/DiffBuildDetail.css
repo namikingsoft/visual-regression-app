@@ -1,10 +1,14 @@
 @import '../variables';
 
 .my {
+
   &Header {
     margin-bottom: 30px;
   }
+
   &List {
+    margin-bottom: 30px;
+
     &Item {
       & > img {
         width: 65px;
@@ -12,6 +16,7 @@
       }
     }
   }
+
   &LittleDiffImages {
     margin-top: 30px;
     margin-bottom: 30px;
