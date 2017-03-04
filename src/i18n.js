@@ -1,11 +1,11 @@
 import i18n from 'i18next';
-import ja from 'locales/ja';
+import en from 'locales/en';
 
 export default i18n.init({
-  lng: 'ja',
+  lng: 'en',
   defaultNS: 'translation',
   resources: {
-    ja,
+    en,
   },
   returnObjects: true,
 });

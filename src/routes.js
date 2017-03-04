@@ -1,8 +1,11 @@
 // @flow
 import Root from 'containers/Root';
 import Dashboard from 'containers/Dashboard';
+
 import DiffBuildDetail from 'pages/DiffBuildDetail';
 import NotFound from 'pages/NotFound';
+
+import loading from 'highorders/loading';
 import fetchDiffBuild from 'highorders/fetchDiffBuild';
 
 export default {
@@ -10,7 +13,7 @@ export default {
   component: Root,
   childRoutes: [
     {
-      component: Dashboard,
+      component: loading(Dashboard),
       indexRoute: {
         component: NotFound,
       },

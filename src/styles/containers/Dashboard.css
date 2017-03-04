@@ -1,0 +1,10 @@
+@import '../variables';
+
+.my {
+  &Menu {
+    border-radius: 0;
+  }
+  &Container {
+    margin-top: 50px;
+  }
+}

@@ -39,9 +39,7 @@ export const websocketMiddleware:
     const data = JSON.parse((e.data: any));
     switch (data.type) {
       case 'DiffBuild/RUN': {
-        if (data.status) {
-          getDiffBuild(data.payload)(dispatch);
-        }
+        if (data.status) getDiffBuild(data.payload)(dispatch);
         dispatch({ type: 'Loading/FINISH' });
         break;
       }

@@ -1,10 +1,20 @@
 // @flow
+import del from 'del';
 import { getFullResult } from 'image-diff';
-import { pipe, keys, map, filter, cond, reduce, always, is, T } from 'ramda';
-import { returnPromiseAll } from 'utils/functional';
-import { scanDirWithKey } from 'utils/file';
+import R, { pipe, always, is } from 'ramda';
+import { andThen, returnPromiseAll } from 'utils/functional';
+import { scanDirWithKey, putFile } from 'utils/file';
 import { hash } from 'utils/crypt';
+import {
+  getArtifacts,
+  saveArtifacts,
+  untilDoneBuild,
+  getBuildViewUri,
+} from 'domains/CircleCI';
+import { postMessage } from 'domains/Slack';
+import type { SlackIncoming, MessageResponce } from 'domains/Slack';
 
+type Uri = string;
 type Path = string;
 type PathFilters = any;
 
@@ -42,6 +52,9 @@ export type RequestPayload = BuildIdentifier & {
 export type ImageDiffResult = BuildIdentifier & {
   newImagePathes: Path[],
   delImagePathes: Path[],
+  maxPercentage: number,
+  avgPercentage: number,
+  diffCount: number,
   images: ImageDiff[],
 };
 
@@ -96,17 +109,17 @@ export const extractIdentifier:
 
 export const createPathFilter:
   PathFilters => Path => boolean
-= cond([
+= R.cond([
   [is(Array),
     pipe(
-      map(x => y => new RegExp(x).test(y)),
-      reduce((acc, x) => y => acc(y) && x(y), T),
+      R.map(x => y => new RegExp(x).test(y)),
+      R.reduce((acc, x) => y => acc(y) && x(y), R.T),
     ),
   ],
   [is(String),
     x => y => new RegExp(x).test(y),
   ],
-  [T,
+  [R.T,
     () => always(true),
   ],
 ]);
@@ -123,9 +136,9 @@ export const createImageDiffByDir:
   const imageMap1 = await scanDirWithKey(actualImage);
   const imageMap2 = await scanDirWithKey(expectedImage);
   return pipe(
-    keys,
-    filter(x => imageMap1[x] && imageMap2[x]),
-    map(async x => ({
+    R.keys,
+    R.filter(x => imageMap1[x] && imageMap2[x]),
+    R.map(async x => ({
       ...await createImageDiff({
         actualImage: imageMap1[x],
         expectedImage: imageMap2[x],
@@ -143,8 +156,8 @@ export const getNewImagePathes:
   const imageMap1 = await scanDirWithKey(actualImage);
   const imageMap2 = await scanDirWithKey(expectedImage);
   return pipe(
-    keys,
-    filter(x => imageMap1[x] && !imageMap2[x]),
+    R.keys,
+    R.filter(x => imageMap1[x] && !imageMap2[x]),
   )(imageMap1);
 };
 
@@ -154,7 +167,121 @@ export const getDelImagePathes:
   const imageMap1 = await scanDirWithKey(actualImage);
   const imageMap2 = await scanDirWithKey(expectedImage);
   return pipe(
-    keys,
-    filter(x => !imageMap1[x] && imageMap2[x]),
+    R.keys,
+    R.filter(x => !imageMap1[x] && imageMap2[x]),
   )(imageMap2);
+};
+
+export const postStartMessage:
+  SlackIncoming => BuildIdentifier => Promise<MessageResponce>
+= slackIncoming => identifier => postMessage(slackIncoming)({
+  attachments: [{
+    fallback: 'Start building images ...',
+    pretext: 'Start building images ...',
+    color: '#cccccc',
+    fields: [
+      {
+        title: 'Actual Images',
+        value: getBuildViewUri({
+          username: identifier.username,
+          reponame: identifier.reponame,
+          buildNum: identifier.actualBuildNum,
+        }),
+        short: false,
+      },
+      {
+        title: 'Expected Images',
+        value: getBuildViewUri({
+          username: identifier.username,
+          reponame: identifier.reponame,
+          buildNum: identifier.expectBuildNum,
+        }),
+        short: false,
+      },
+    ],
+    footer: 'Start building images',
+    ts: Math.floor(new Date().getTime() / 1000),
+  }],
+});
+
+export const postFinishMessage:
+  SlackIncoming => (ImageDiffResult, Uri) => Promise<MessageResponce>
+= slackIncoming => (result, uri) => postMessage(slackIncoming)({
+  attachments: [{
+    fallback: 'Finish building images',
+    color: result.maxPercentage > result.threshold ? '#cc0000' : '#36a64f',
+    fields: [
+      {
+        title: 'Max Percentage',
+        value: `${result.maxPercentage} %`,
+        short: true,
+      },
+      {
+        title: 'Avarage',
+        value: `${result.avgPercentage} %`,
+        short: true,
+      },
+      {
+        title: 'Difference Count',
+        value: String(result.diffCount),
+        short: true,
+      },
+      {
+        title: 'Build URL',
+        value: `<${uri}|View Image Diff List>`,
+        short: true,
+      },
+    ],
+    footer: 'Finish building images',
+    ts: Math.floor(new Date().getTime() / 1000),
+  }],
+});
+
+export const buildDiffImages:
+  Path => BuildIdentifier => Promise<ImageDiffResult>
+= workDirPath => async identifier => {
+  const { token, username, reponame, actualBuildNum, expectBuildNum } = identifier;
+  const pathFilter = createPathFilter(identifier.pathFilters);
+  const locate = getWorkLocation(workDirPath)(identifier);
+  const commonBuildParam = { vcsType: 'github', username, reponame };
+  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: actualBuildNum });
+  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: expectBuildNum });
+  await del(locate.dirpath, { force: true });
+  const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
+    getArtifacts(token),
+    andThen(pipe(
+      R.filter(x => pathFilter(x.path)),
+      saveArtifacts(token)(saveDirPath),
+    )),
+  )({ ...commonBuildParam, buildNum });
+  await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
+  await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
+  const pairPath = {
+    actualImage: locate.actualDirPath,
+    expectedImage: locate.expectDirPath,
+  };
+  const images = await createImageDiffByDir({
+    ...pairPath,
+    diffImage: locate.diffDirPath,
+  });
+  const result = {
+    ...identifier,
+    newImagePathes: await getNewImagePathes(pairPath),
+    delImagePathes: await getDelImagePathes(pairPath),
+    avgPercentage:
+      pipe(
+        R.map(x => x.percentage),
+        R.mean,
+      )(images),
+    maxPercentage:
+      pipe(
+        R.map(x => x.percentage),
+        R.reduce(R.max, 0),
+      )(images),
+    diffCount:
+      R.filter(x => x.percentage > 0)(images).length,
+    images,
+  };
+  await putFile(locate.resultJsonPath)(JSON.stringify(result));
+  return result;
 };

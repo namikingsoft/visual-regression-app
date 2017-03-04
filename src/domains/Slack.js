@@ -1,14 +1,14 @@
 // @flow
 import * as request from 'utils/request';
 
-type SlackIncoming = string;
+export type SlackIncoming = string;
 type ChannelID = string;
 type TimeStamp = string;
 type EpochTime = number;
 type Color = string;
 type Uri = string;
 
-type Attachment = {
+export type Attachment = {
   fallback: string,
   color?: Color,
   pretext?: string,
@@ -30,12 +30,12 @@ type Attachment = {
   ts?: EpochTime,
 };
 
-type Message = {
+export type Message = {
   text?: string,
   attachments?: Attachment[];
 };
 
-type MessageResponce = {
+export type MessageResponce = {
   ok: boolean,
   channel: ChannelID,
   ts: TimeStamp,

@@ -1,24 +1,31 @@
 @import '../variables';
 
 .my {
-
-  &Header {
+  &Headline {
     margin-bottom: 30px;
   }
-
-  &List {
-    margin-bottom: 45px;
-
+  &Statistics {
+    margin-bottom: 75px;
+  }
+  &DiffImages {
+    margin-bottom: 50px;
+    &Header {
+      margin-bottom: 30px;
+    }
+    &Lesses {
+      margin-top: 30px;
+    }
+  }
+  &InOutImages {
+    margin-bottom: 50px;
+    &Header {
+      margin-bottom: 30px;
+    }
     &Item {
       & > img {
-        width: 65px;
+        width: 100px;
         cursor: pointer;
       }
     }
-  }
-
-  &LittleDiffImages {
-    margin-top: 30px;
-    margin-bottom: 30px;
   }
 }
