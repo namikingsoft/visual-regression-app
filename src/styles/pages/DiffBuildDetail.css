@@ -16,6 +16,20 @@
       margin-top: 30px;
     }
   }
+  &DiffImage {
+    position: relative;
+    & + & {
+      margin-top: 50px;
+    }
+    &Title {
+    }
+    &Percent {
+      margin-right: 1.2em;
+    }
+    img {
+      cursor: pointer;
+    }
+  }
   &InOutImages {
     margin-bottom: 50px;
     &Header {
@@ -23,7 +37,7 @@
     }
     &Item {
       & > img {
-        width: 100px;
+        width: 125px;
         cursor: pointer;
       }
     }

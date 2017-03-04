@@ -9,6 +9,7 @@ import {
   Accordion,
   Icon,
   List,
+  Label,
   Image,
   Statistic,
 } from 'semantic-ui-react';
@@ -20,8 +21,7 @@ import {
   isLoaded,
   isSuccess,
 } from 'domains/DiffBuild';
-import type { DiffBuild } from 'domains/DiffBuild';
-import ImageDiff from 'components/ImageDiff';
+import type { DiffBuild, ImageDiff } from 'domains/DiffBuild';
 import ModalImage from 'components/ModalImage';
 import { setDocumentTitleWithAppName } from 'highorders/setDocumentTitle';
 import style from 'styles/pages/DiffBuildDetail.css';
@@ -87,6 +87,48 @@ const Statistics = ({ diffBuild, t }: Props) =>
   </div>
 ;
 
+const DiffImage = ({ image }: { image: ImageDiff }) =>
+  <div className={style.myDiffImage}>
+    <h4 className={style.myDiffImageTitle}>
+      <Label className={style.myDiffImagePercent} size="large" pointing="below">
+        <Icon name="edit" />
+        {`${image.percentage} %`}
+      </Label>
+      {image.path}
+    </h4>
+    <Grid>
+      <Grid.Row columns={3}>
+        <Grid.Column>
+          <ModalImage
+            image={
+              <Image
+                src={image.diffImagePath}
+                alt=""
+                bordered
+                style={{
+                  backgroundImage: `url(${image.expectImagePath})`,
+                  backgroundPosition: 'center top',
+                  backgroundSize: '100% auto',
+                }}
+              />
+            }
+          />
+        </Grid.Column>
+        <Grid.Column>
+          <ModalImage
+            image={<Image src={image.actualImagePath} alt="" bordered />}
+          />
+        </Grid.Column>
+        <Grid.Column>
+          <ModalImage
+            image={<Image src={image.expectImagePath} alt="" bordered />}
+          />
+        </Grid.Column>
+      </Grid.Row>
+    </Grid>
+  </div>
+;
+
 const DiffImages = ({ diffBuild, t }: Props) =>
   <div className={style.myDiffImages}>
     <Grid className={style.myDiffImagesHeader}>
@@ -115,7 +157,7 @@ const DiffImages = ({ diffBuild, t }: Props) =>
       </Grid.Row>
     </Grid>
     {listManyDiffImages(diffBuild).map(x => (
-      <ImageDiff key={x.path} value={x} />
+      <DiffImage key={x.path} image={x} />
     ))}
     <Accordion className={style.myDiffImagesLesses}>
       <Accordion.Title>
@@ -124,7 +166,7 @@ const DiffImages = ({ diffBuild, t }: Props) =>
       </Accordion.Title>
       <Accordion.Content>
         {listLessDiffImages(diffBuild).map(x => (
-          <ImageDiff key={x.path} value={x} />
+          <DiffImage key={x.path} image={x} />
         ))}
       </Accordion.Content>
     </Accordion>
@@ -141,13 +183,17 @@ const InOutImages = ({ diffBuild, t }: Props) =>
         {diffBuild.newImages.map(x => (
           <List.Item key={`new${x.path}`} className={style.myInOutImagesItem}>
             <ModalImage image={<Image src={x.imagePath} />} />
-            <List.Content><Icon name="plus" color="green" /> {x.path}</List.Content>
+            <List.Content>
+              <Icon name="plus" color="green" size="big" /> {x.path}
+            </List.Content>
           </List.Item>
         ))}
         {diffBuild.delImages.map(x => (
           <List.Item key={`del${x.path}`} className={style.myInOutImagesItem}>
             <ModalImage image={<Image src={x.imagePath} />} />
-            <List.Content><Icon name="minus" color="red" /> {x.path}</List.Content>
+            <List.Content>
+              <Icon name="minus" color="red" size="big" /> {x.path}
+            </List.Content>
           </List.Item>
         ))}
       </List>

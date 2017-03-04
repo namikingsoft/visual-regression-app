@@ -8,7 +8,7 @@ import { mkdir } from 'utils/file';
 import { andThen } from 'utils/functional';
 import { browserHistory } from 'backends/history';
 import { devMiddleware } from 'backends/webpack';
-import { buildResource, buildSocket } from 'backends/build';
+import * as build from 'backends/build';
 import * as common from 'backends/common';
 import * as env from 'env';
 import webpack from '../webpack.config';
@@ -17,14 +17,14 @@ const routes:
   $Application => $Application
 = pipe(
   common.staticRoute(env.workDirPath)('/assets'),
-  buildResource('/api/v1/builds'),
+  build.resource('/api/v1/builds'),
 );
 
 const sockets:
   net$Server => ServerSocket
 = pipe(
   common.createSocketServer,
-  buildSocket,
+  build.websocket,
 );
 
 export const startDevelopment:

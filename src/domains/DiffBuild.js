@@ -22,7 +22,7 @@ export type ImageInfo = {
 };
 
 export type DiffBuild = {
-  token: Path,
+  ciToken: string,
   username: Path,
   reponame: Path,
   actualBuildNum: number,
@@ -38,7 +38,7 @@ export type DiffBuild = {
 };
 
 const initialState = {
-  token: '',
+  ciToken: '',
   username: '',
   reponame: '',
   actualBuildNum: 0,
@@ -55,7 +55,7 @@ const initialState = {
 
 export const isLoaded:
   DiffBuild => boolean
-= x => x.token !== '';
+= x => x.username !== '';
 
 export const isSuccess:
   DiffBuild => boolean

@@ -16,7 +16,7 @@ import * as env from 'env';
 
 type Route = string;
 
-export const buildResource:
+export const resource:
   Route => $Application => $Application
 = route => app => (app: any)
 .post(route, async (req, res) => {
@@ -31,14 +31,12 @@ export const buildResource:
       const result = await buildDiffImages(env.workDirPath)(identifier);
       const uri = `${env.appUri}/builds/${encoded}`;
       await postFinishMessage(slackIncoming)(result, uri);
-    } catch (error) {
-      postMessage(slackIncoming)({
-        text: 'Occurred error.',
-      });
+    } catch (err) {
+      postMessage(slackIncoming)({ text: 'Occurred error.' });
     }
-  } catch (error) {
-    res.status(400).send({ error });
-    throw error;
+  } catch (err) {
+    res.status(400).send({ error: err.message });
+    throw err;
   }
 })
 .get(`${route}/:encoded`, async (req, res) => {
@@ -51,26 +49,26 @@ export const buildResource:
       ...build,
       images: build.images.map(x => ({
         ...x,
-        actualImagePath: `/assets/${hashed}/actual${x.path}`,
-        expectImagePath: `/assets/${hashed}/expect${x.path}`,
-        diffImagePath: `/assets/${hashed}/diff${x.path}`,
+        actualImagePath: `${env.appUri}/assets/${hashed}/actual${x.path}`,
+        expectImagePath: `${env.appUri}/assets/${hashed}/expect${x.path}`,
+        diffImagePath: `${env.appUri}/assets/${hashed}/diff${x.path}`,
       })),
       newImages: build.newImagePathes.map(path => ({
         path,
-        imagePath: `/assets/${hashed}/actual${path}`,
+        imagePath: `${env.appUri}/assets/${hashed}/actual${path}`,
       })),
       delImages: build.delImagePathes.map(path => ({
         path,
-        imagePath: `/assets/${hashed}/expect${path}`,
+        imagePath: `${env.appUri}/assets/${hashed}/expect${path}`,
       })),
     });
-  } catch (error) {
-    res.status(400).send({ error });
-    throw error;
+  } catch (err) {
+    res.status(400).send({ error: err.message });
+    throw err;
   }
 });
 
-export const buildSocket:
+export const websocket:
   ServerSocket => ServerSocket
 = wss => wss.on('connection', ws => ws
   .on('message', async json => {
@@ -81,8 +79,9 @@ export const buildSocket:
       const identifier = decode(env.cryptSecret)(encoded);
       await buildDiffImages(env.workDirPath)(identifier);
       ws.send(JSON.stringify({ type: data.type, status: true, payload: encoded }));
-    } catch (error) {
-      ws.send(JSON.stringify({ type: data.type, status: false, error }));
+    } catch (err) {
+      ws.send(JSON.stringify({ type: data.type, status: false, error: err.message }));
+      throw err;
     }
   }),
 );

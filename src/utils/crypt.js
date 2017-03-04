@@ -9,17 +9,25 @@ type Hash = string;
 const cryptAlgorithm = 'aes192';
 const hashAlgorithm = 'sha224';
 const plainType = 'utf8';
-const encodedType = 'hex';
+const encodedType = 'base64';
+
+const safeURI:
+  string => string
+= x => x.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+const unsafeURI:
+  string => string
+= x => x.replace(/-/g, '+').replace(/_/g, '/');
 
 export const encode:
   Password => Plain => Encoded
 = password => plain => {
   const json = JSON.stringify(plain);
   const cipher = crypto.createCipher(cryptAlgorithm, password);
-  return [
+  return safeURI([
     cipher.update(json, plainType, encodedType),
     cipher.final(encodedType),
-  ].join('');
+  ].join(''));
 };
 
 export const decode:
@@ -27,7 +35,7 @@ export const decode:
 = password => encoded => {
   const decipher = crypto.createDecipher(cryptAlgorithm, password);
   return JSON.parse([
-    decipher.update(encoded, encodedType, plainType),
+    decipher.update(unsafeURI(encoded), encodedType, plainType),
     decipher.final(plainType),
   ].join(''));
 };
@@ -37,4 +45,4 @@ export const hash:
 = plain => crypto
   .createHash(hashAlgorithm)
   .update(JSON.stringify(plain))
-  .digest(encodedType);
+  .digest('hex');

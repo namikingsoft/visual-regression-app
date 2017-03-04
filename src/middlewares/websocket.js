@@ -1,5 +1,6 @@
 // @flow
 /* eslint-disable immutable/no-mutation */
+import { replace } from 'react-router-redux';
 import type { Middleware } from 'redux';
 import type { Action } from 'actions';
 import { getDiffBuild } from 'domains/DiffBuild';
@@ -39,7 +40,11 @@ export const websocketMiddleware:
     const data = JSON.parse((e.data: any));
     switch (data.type) {
       case 'DiffBuild/RUN': {
-        if (data.status) getDiffBuild(data.payload)(dispatch);
+        if (data.status) {
+          getDiffBuild(data.payload)(dispatch);
+        } else {
+          dispatch(replace('/'));
+        }
         dispatch({ type: 'Loading/FINISH' });
         break;
       }

@@ -18,7 +18,7 @@ type Uri = string;
 type Path = string;
 type PathFilters = any;
 
-const defaultThreshold = 0.01; // %
+const defaultThreshold = 0.005; // %
 
 export type ImageWithoutDiffParam = {
   actualImage: Path,
@@ -36,7 +36,7 @@ export type ImageDiff = {
 };
 
 export type BuildIdentifier = {
-  token: string,
+  ciToken: string,
   username: string,
   reponame: string,
   actualBuildNum: number,
@@ -85,7 +85,7 @@ export const getWorkLocation:
 export const extractPayload:
   Object => RequestPayload
 = x => ({
-  token: x.token,
+  ciToken: x.ciToken,
   username: x.username,
   reponame: x.reponame,
   actualBuildNum: x.actualBuildNum,
@@ -98,7 +98,7 @@ export const extractPayload:
 export const extractIdentifier:
   Object => BuildIdentifier
 = x => ({
-  token: x.token,
+  ciToken: x.ciToken,
   username: x.username,
   reponame: x.reponame,
   actualBuildNum: x.actualBuildNum,
@@ -240,18 +240,18 @@ export const postFinishMessage:
 export const buildDiffImages:
   Path => BuildIdentifier => Promise<ImageDiffResult>
 = workDirPath => async identifier => {
-  const { token, username, reponame, actualBuildNum, expectBuildNum } = identifier;
+  const { ciToken, username, reponame, actualBuildNum, expectBuildNum } = identifier;
   const pathFilter = createPathFilter(identifier.pathFilters);
   const locate = getWorkLocation(workDirPath)(identifier);
   const commonBuildParam = { vcsType: 'github', username, reponame };
-  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: actualBuildNum });
-  await untilDoneBuild(token)({ ...commonBuildParam, buildNum: expectBuildNum });
+  await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum });
+  await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: expectBuildNum });
   await del(locate.dirpath, { force: true });
   const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
-    getArtifacts(token),
+    getArtifacts(ciToken),
     andThen(pipe(
       R.filter(x => pathFilter(x.path)),
-      saveArtifacts(token)(saveDirPath),
+      saveArtifacts(ciToken)(saveDirPath),
     )),
   )({ ...commonBuildParam, buildNum });
   await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
