@@ -1,5 +1,4 @@
 // @flow
-/* eslint-disable immutable/no-mutation */
 import { replace } from 'react-router-redux';
 import type { Middleware } from 'redux';
 import type { Action } from 'actions';
@@ -9,6 +8,8 @@ type Payload = {
   type: 'DiffBuild/RUN',
   payload: string,
 };
+
+type MessageCallback = any => any;
 
 const untilOpen:
   WebSocket => Promise<WebSocket>
@@ -23,9 +24,17 @@ const untilOpen:
   check();
 });
 
+
+const onMessage:
+  MessageCallback => WebSocket => WebSocket
+= callback => ws => {
+  ws.onmessage = callback; //  eslint-disable-line
+  return ws;
+};
+
 const send:
-  WebSocket => Payload => Promise<WebSocket>
-= ws => async payload => {
+  Payload => WebSocket => Promise<WebSocket>
+= payload => async ws => {
   await untilOpen(ws);
   ws.send(JSON.stringify(payload));
   return ws;
@@ -35,7 +44,7 @@ export const websocketMiddleware:
   Middleware<any, Action>
 = ({ dispatch }) => {
   const ws = new WebSocket(location.origin.replace(/^http/, 'ws'));
-  ws.onmessage = async e => {
+  onMessage(async e => {
     await untilOpen(ws);
     const data = JSON.parse((e.data: any));
     switch (data.type) {
@@ -50,12 +59,12 @@ export const websocketMiddleware:
       }
       default:
     }
-  };
+  })(ws);
   return next => action => {
     switch (action.type) {
       case 'DiffBuild/RUN': {
         dispatch({ type: 'Loading/START' });
-        send(ws)({ type: action.type, payload: action.payload });
+        send({ type: action.type, payload: action.payload })(ws);
         break;
       }
       default:

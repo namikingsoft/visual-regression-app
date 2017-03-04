@@ -11,6 +11,7 @@ import {
   postStartMessage,
   postFinishMessage,
   buildDiffImages,
+  getResource,
 } from 'domains/DiffBuildBackend';
 import * as env from 'env';
 
@@ -44,24 +45,8 @@ export const resource:
     const { encoded } = req.params;
     const identifier = decode(env.cryptSecret)(encoded);
     const { hashed, resultJsonPath } = getWorkLocation(env.workDirPath)(identifier);
-    const build = JSON.parse(await getTextFile(resultJsonPath));
-    res.status(200).send({
-      ...build,
-      images: build.images.map(x => ({
-        ...x,
-        actualImagePath: `${env.appUri}/assets/${hashed}/actual${x.path}`,
-        expectImagePath: `${env.appUri}/assets/${hashed}/expect${x.path}`,
-        diffImagePath: `${env.appUri}/assets/${hashed}/diff${x.path}`,
-      })),
-      newImages: build.newImagePathes.map(path => ({
-        path,
-        imagePath: `${env.appUri}/assets/${hashed}/actual${path}`,
-      })),
-      delImages: build.delImagePathes.map(path => ({
-        path,
-        imagePath: `${env.appUri}/assets/${hashed}/expect${path}`,
-      })),
-    });
+    const result = JSON.parse(await getTextFile(resultJsonPath));
+    res.status(200).send(getResource(result)(`${env.appUri}/assets/${hashed}`));
   } catch (err) {
     res.status(400).send({ error: err.message });
     throw err;

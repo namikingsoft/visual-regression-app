@@ -50,8 +50,8 @@ export type RequestPayload = BuildIdentifier & {
 };
 
 export type ImageDiffResult = BuildIdentifier & {
-  newImagePathes: Path[],
-  delImagePathes: Path[],
+  newImages: Path[],
+  delImages: Path[],
   maxPercentage: number,
   avgPercentage: number,
   diffCount: number,
@@ -266,8 +266,8 @@ export const buildDiffImages:
   });
   const result = {
     ...identifier,
-    newImagePathes: await getNewImagePathes(pairPath),
-    delImagePathes: await getDelImagePathes(pairPath),
+    newImages: await getNewImagePathes(pairPath),
+    delImages: await getDelImagePathes(pairPath),
     avgPercentage:
       pipe(
         R.map(x => x.percentage),
@@ -285,3 +285,23 @@ export const buildDiffImages:
   await putFile(locate.resultJsonPath)(JSON.stringify(result));
   return result;
 };
+
+export const getResource:
+  ImageDiffResult => Uri => Object // TODO: strict type
+= result => assetUri => ({
+  ...result,
+  images: result.images.map(x => ({
+    ...x,
+    actualImagePath: `${assetUri}/actual${x.path || ''}`,
+    expectImagePath: `${assetUri}/expect${x.path || ''}`,
+    diffImagePath: `${assetUri}/diff${x.path || ''}`,
+  })),
+  newImages: result.newImages.map(path => ({
+    path,
+    imagePath: `${assetUri}/actual${path}`,
+  })),
+  delImages: result.delImages.map(path => ({
+    path,
+    imagePath: `${assetUri}/expect${path}`,
+  })),
+});
