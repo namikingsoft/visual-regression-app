@@ -204,6 +204,14 @@ export const postStartMessage:
   }],
 });
 
+const countManyDiff:
+  ImageDiffResult => number
+= x => x.images.filter(y => y.percentage > x.threshold).length;
+
+const countLessDiff:
+  ImageDiffResult => number
+= x => x.images.filter(y => y.percentage <= x.threshold && y.percentage > 0).length;
+
 export const postFinishMessage:
   SlackIncoming => (ImageDiffResult, Uri) => Promise<MessageResponce>
 = slackIncoming => (result, uri) => postMessage(slackIncoming)({
@@ -222,13 +230,13 @@ export const postFinishMessage:
         short: true,
       },
       {
-        title: 'Difference Count',
-        value: String(result.diffCount),
+        title: 'Error / Less Count',
+        value: `${countManyDiff(result)} / ${countLessDiff(result)}`,
         short: true,
       },
       {
         title: 'Build URL',
-        value: `<${uri}|View Image Diff List>`,
+        value: `<${uri}|View Image Diff Detail>`,
         short: true,
       },
     ],
