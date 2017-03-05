@@ -11,14 +11,14 @@ describe('utils/crypt', () => {
     it('should be encode plain text', () => {
       assert(
         encode('password')('test')
-        === 'c00a483af30dd223a4839824359fe15d',
+        === 'wApIOvMN0iOkg5gkNZ_hXQ',
       );
     });
 
     it('should be encode plain mixed', () => {
       assert(
         encode('password')({ key: 1234, text: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' })
-        === '46f1f2ab3a709445249fdc2c35a68c6e108b6e55a7b50b171fe0fd43f038a22da574783752d2ac5c47b176a32e8a9ea73de0b2d7a54ab4c291441feec3971f7d',
+        === 'RvHyqzpwlEUkn9wsNaaMbhCLblWntQsXH-D9Q_A4oi2ldHg3UtKsXEexdqMuip6nPeCy16VKtMKRRB_uw5cffQ',
       );
     });
   });
@@ -26,14 +26,14 @@ describe('utils/crypt', () => {
   describe('decode', () => {
     it('should be decode encoded text', () => {
       assert(
-        decode('password')('c00a483af30dd223a4839824359fe15d')
+        decode('password')('wApIOvMN0iOkg5gkNZ_hXQ')
         === 'test',
       );
     });
 
     it('should be decode encoded mixed', () => {
       assert.deepEqual(
-        decode('password')('46f1f2ab3a709445249fdc2c35a68c6e108b6e55a7b50b171fe0fd43f038a22da574783752d2ac5c47b176a32e8a9ea73de0b2d7a54ab4c291441feec3971f7d'),
+        decode('password')('RvHyqzpwlEUkn9wsNaaMbhCLblWntQsXH-D9Q_A4oi2ldHg3UtKsXEexdqMuip6nPeCy16VKtMKRRB_uw5cffQ'),
         { key: 1234, text: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
       );
     });
