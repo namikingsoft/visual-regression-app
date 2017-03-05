@@ -25,6 +25,12 @@ export const mkdirWithFile:
   );
 });
 
+export const exists:
+  FilePath => Promise<boolean>
+= async filepath => new Promise(resolve => (
+  fs.access(filepath, fs.constants.R_OK, err => resolve(!err))
+));
+
 export const putFile:
   FilePath => Data => Promise<any>
 = filepath => async data => {

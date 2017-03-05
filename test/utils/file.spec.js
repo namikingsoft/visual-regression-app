@@ -3,6 +3,7 @@ import assert from 'power-assert';
 import fs from 'fs';
 import mock from 'mock-fs';
 import {
+  exists,
   putFile,
   getTextFile,
   scanDir,
@@ -26,6 +27,16 @@ describe('utils/file', () => {
 
   afterEach(() => {
     mock.restore();
+  });
+
+  describe('exists', () => {
+    it('should be return promise true on found', async () => {
+      assert(await exists('/path/to/fake/test1.txt'));
+    });
+
+    it('should be return promise false on not found', async () => {
+      assert(!await exists('/path/to/fake/test2.txt'));
+    });
   });
 
   describe('putFile', () => {
