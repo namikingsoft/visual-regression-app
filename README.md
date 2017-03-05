@@ -16,6 +16,7 @@ npm install
 cp .env.template .env
 vi .env
 npm start
+http://localhost:3000
 ```
 
 
@@ -53,6 +54,6 @@ if [ "${CIRCLE_BRANCH}" = "master" ]; then
     -H "Accept: application/json" \
     -H "Content-Type: application/json" \
     -X POST -d "$(json)" \
-    http://localhost:3000/api/v1/builds
+    http://(server host)/api/v1/builds
 fi
 ```
