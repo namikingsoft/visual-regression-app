@@ -37,6 +37,10 @@ export type DiffBuild = {
   images: ImageDiff[],
 };
 
+export type EncodedIdentifierParam = {
+  encoded: EncodedIdentifier,
+};
+
 const initialState = {
   ciToken: '',
   username: '',
@@ -133,7 +137,7 @@ export const getDiffBuild:
   } catch (e) {
     dispatch({
       type: 'DiffBuild/RUN',
-      payload: encoded,
+      payload: { encoded },
     });
   }
   dispatch({ type: 'Loading/FINISH' });

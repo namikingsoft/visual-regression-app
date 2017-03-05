@@ -1,6 +1,6 @@
 // @flow
 import type { $Application } from 'express';
-import { Server as ServerSocket } from 'ws';
+import type { $SocketIO } from 'socket.io';
 import { postMessage } from 'domains/Slack';
 import { getTextFile } from 'utils/file';
 import { encode, decode } from 'utils/crypt';
@@ -54,19 +54,17 @@ export const resource:
   }
 });
 
-export const websocket:
-  ServerSocket => ServerSocket
-= wss => wss.on('connection', ws => ws
-  .on('message', async json => {
-    const data = JSON.parse(json);
-    if (data.type !== 'DiffBuild/RUN') return;
+export const socket:
+  $SocketIO => $SocketIO
+= io => io.on('connection', client => client
+  .on('DiffBuild/RUN', async ({ payload }) => {
     try {
-      const encoded = data.payload;
+      const { encoded } = payload;
       const identifier = decode(env.cryptSecret)(encoded);
       await buildDiffImages(env.workDirPath)(identifier);
-      ws.send(JSON.stringify({ type: data.type, status: true, payload: encoded }));
+      client.emit('DiffBuild/RUN', { status: true, payload });
     } catch (err) {
-      ws.send(JSON.stringify({ type: data.type, status: false, error: err.message }));
+      client.emit('DiffBuild/RUN', { status: false, error: err.message });
       throw err;
     }
   }),

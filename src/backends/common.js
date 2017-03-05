@@ -1,6 +1,7 @@
 // @flow
 import type { $Application } from 'express';
-import { Server as ServerSocket } from 'ws';
+import type { $SocketIO } from 'socket.io';
+import socketIO from 'socket.io';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -18,8 +19,8 @@ export const listen:
 });
 
 export const createSocketServer:
-  net$Server => ServerSocket
-= server => new ServerSocket({ server });
+  net$Server => $SocketIO
+= socketIO;
 
 export const parse:
   $Application => $Application

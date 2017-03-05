@@ -1,6 +1,6 @@
 // @flow
 import type { $Application } from 'express';
-import { ServerSocket } from 'ws';
+import type { $SocketIO } from 'socket.io';
 import { pipe } from 'ramda';
 import express from 'express';
 import del from 'del';
@@ -21,10 +21,10 @@ const routes:
 );
 
 const sockets:
-  net$Server => ServerSocket
+  net$Server => $SocketIO
 = pipe(
   common.createSocketServer,
-  build.websocket,
+  build.socket,
 );
 
 export const startDevelopment:
