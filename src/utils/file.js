@@ -1,4 +1,5 @@
 // @flow
+import type { Stats } from 'fs';
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
@@ -24,6 +25,12 @@ export const mkdirWithFile:
     err => (err ? reject(err) : resolve(filepath)),
   );
 });
+
+export const stat:
+  FilePath => Promise<Stats>
+= async filepath => new Promise((resolve, reject) => (
+  fs.stat(filepath, (err, stats) => (err ? reject(err) : resolve(stats)))
+));
 
 export const exists:
   FilePath => Promise<boolean>

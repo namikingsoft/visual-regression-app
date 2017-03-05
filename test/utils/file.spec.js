@@ -3,6 +3,7 @@ import assert from 'power-assert';
 import fs from 'fs';
 import mock from 'mock-fs';
 import {
+  stat,
   exists,
   putFile,
   getTextFile,
@@ -27,6 +28,15 @@ describe('utils/file', () => {
 
   afterEach(() => {
     mock.restore();
+  });
+
+  describe('stat', () => {
+    it('should be return stats of file or dir', async () => {
+      const stats = await stat('/path/to/fake/test1.txt');
+      assert(stats.uid >= 0);
+      assert(stats.ctime <= new Date());
+      assert(stats.mtime <= new Date());
+    });
   });
 
   describe('exists', () => {
