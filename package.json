@@ -1,5 +1,5 @@
 {
-  "name": "functional-javascript-sandbox",
+  "name": "ci-image-diff",
   "version": "0.0.1",
   "license": "MIT",
   "main": "src/index.js",
