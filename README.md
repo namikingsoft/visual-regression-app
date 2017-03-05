@@ -1,7 +1,13 @@
-Sandbox of Functional Programing by JS
+Image Diff on CI
 ========================================
-This is CLI Application that send slack message from stdin.
-Powered by `ramda` module.
+This is Web Application that detected image difference on CircleCI.
+
+
+Required
+----------------------------------------
+Install ImageMagick before start this application.
+https://www.imagemagick.org/script/index.php
+
 
 Getting Started
 ----------------------------------------
@@ -9,10 +15,16 @@ Getting Started
 npm install
 cp .env.template .env
 vi .env
-echo 'Message Text...' | npm start
+npm start
 ```
 
-Robustness diagram
-----------------------------------------
-![Robustness diagram](./robustness.png)
 
+Deploy to Heroku
+----------------------------------------
+```bash
+heroku create
+heroku heroku config:set CRYPT_SECRET="****"
+heroku heroku config:set MAGICK_THREAD_LIMIT=1
+heroku heroku config:set NPM_CONFIG_PRODUCTION=false
+git push heroku master
+```
