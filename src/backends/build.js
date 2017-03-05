@@ -28,12 +28,12 @@ export const resource:
     res.status(202).send({ ...identifier, token: undefined });
     res.end();
     try {
-      await postStartMessage(slackIncoming)(identifier);
+      if (slackIncoming) await postStartMessage(slackIncoming)(identifier);
       const result = await buildDiffImages(env.workDirPath)(identifier);
       const uri = `${env.appUri}/builds/${encoded}`;
-      await postFinishMessage(slackIncoming)(result, uri);
+      if (slackIncoming) await postFinishMessage(slackIncoming)(result, uri);
     } catch (err) {
-      postMessage(slackIncoming)({ text: 'Occurred error.' });
+      if (slackIncoming) postMessage(slackIncoming)({ text: 'Occurred error.' });
       console.error(err);
     }
   } catch (err) {

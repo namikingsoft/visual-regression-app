@@ -42,11 +42,11 @@ export type BuildIdentifier = {
   actualBuildNum: number,
   expectBuildNum: number,
   threshold: number,
-  pathFilters: string[],
+  pathFilters?: string[],
 };
 
 export type RequestPayload = BuildIdentifier & {
-  slackIncoming: string,
+  slackIncoming?: string,
 };
 
 export type ImageDiffResult = BuildIdentifier & {
