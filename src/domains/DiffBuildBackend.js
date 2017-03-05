@@ -230,12 +230,12 @@ export const postFinishMessage:
         short: true,
       },
       {
-        title: 'Avarage',
-        value: `${result.avgPercentage} %`,
+        title: 'New / Delete Images',
+        value: `${result.newImages.length} / ${result.delImages.length}`,
         short: true,
       },
       {
-        title: 'Error / Less Count',
+        title: 'Error / Less Difference Images',
         value: `${countManyDiff(result)} / ${countLessDiff(result)}`,
         short: true,
       },
@@ -267,6 +267,20 @@ export const postErrorMessage:
     ts: Math.floor(new Date().getTime() / 1000),
   }],
 });
+
+export const isBuilding:
+  Path => BuildIdentifier => Promise<boolean>
+= workDirPath => async identifier => {
+  const locate = getWorkLocation(workDirPath)(identifier);
+  if (await exists(locate.touchFilePath)) {
+    const now = new Date();
+    const pre = now.setMinutes(now.getMinutes() - waitAcceptedMinutes);
+    if (pre < (await stat(locate.touchFilePath)).ctime) {
+      return true;
+    }
+  }
+  return false;
+};
 
 export const buildDiffImages:
   Path => BuildIdentifier => Promise<ImageDiffResult>
@@ -326,20 +340,6 @@ export const buildDiffImages:
     }
     throw err;
   }
-};
-
-export const isBuilding:
-  Path => BuildIdentifier => Promise<boolean>
-= workDirPath => async identifier => {
-  const locate = getWorkLocation(workDirPath)(identifier);
-  if (await exists(locate.touchFilePath)) {
-    const now = new Date();
-    const pre = now.setMinutes(now.getMinutes() - waitAcceptedMinutes);
-    if (pre < (await stat(locate.touchFilePath)).ctime) {
-      return true;
-    }
-  }
-  return false;
 };
 
 export const untilFinishBuilding:
