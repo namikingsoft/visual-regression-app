@@ -10,6 +10,8 @@ import {
   getWorkLocation,
   postStartMessage,
   postFinishMessage,
+  beforeBuild,
+  afterBuild,
   buildDiffImages,
   getResource,
 } from 'domains/DiffBuildBackend';
@@ -25,6 +27,7 @@ export const resource:
     const { slackIncoming } = extractPayload(req.body);
     const identifier = extractIdentifier(req.body);
     const encoded = encode(env.cryptSecret)(identifier);
+    await beforeBuild(env.workDirPath)(identifier);
     res.status(202).send({ ...identifier, token: undefined });
     res.end();
     try {
@@ -33,9 +36,10 @@ export const resource:
       const uri = `${env.appUri}/builds/${encoded}`;
       if (slackIncoming) await postFinishMessage(slackIncoming)(result, uri);
     } catch (err) {
-      if (slackIncoming) postMessage(slackIncoming)({ text: 'Occurred error.' });
+      if (slackIncoming) postMessage(slackIncoming)({ text: err.message });
       console.error(err);
     }
+    await afterBuild(env.workDirPath)(identifier);
   } catch (err) {
     res.status(400).send({ error: err.message });
     throw err;
@@ -49,7 +53,7 @@ export const resource:
     const result = JSON.parse(await getTextFile(resultJsonPath));
     res.status(200).send(getResource(result)(`${env.appUri}/assets/${hashed}`));
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    res.status(404).send({ error: err.message });
     throw err;
   }
 });

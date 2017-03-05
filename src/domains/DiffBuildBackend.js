@@ -3,7 +3,7 @@ import del from 'del';
 import { getFullResult } from 'image-diff';
 import R, { pipe, always, is } from 'ramda';
 import { andThen, returnPromiseAll } from 'utils/functional';
-import { scanDirWithKey, putFile } from 'utils/file';
+import { scanDirWithKey, putFile, exists, stat } from 'utils/file';
 import { hash } from 'utils/crypt';
 import {
   getArtifacts,
@@ -19,6 +19,7 @@ type Path = string;
 type PathFilters = any;
 
 const defaultThreshold = 0.005; // %
+const waitAcceptedMinutes = 10;
 
 export type ImageWithoutDiffParam = {
   actualImage: Path,
@@ -64,7 +65,8 @@ export type WorkLocation = {
   actualDirPath: Path,
   expectDirPath: Path,
   diffDirPath: Path,
-  resultJsonPath: Path
+  resultJsonPath: Path,
+  touchFilePath: Path,
 }
 
 export const getWorkLocation:
@@ -79,6 +81,7 @@ export const getWorkLocation:
     expectDirPath: `${dirpath}/expect`,
     diffDirPath: `${dirpath}/diff`,
     resultJsonPath: `${dirpath}/index.json`,
+    touchFilePath: `${dirpath}/building.now`,
   };
 };
 
@@ -245,6 +248,30 @@ export const postFinishMessage:
   }],
 });
 
+export const beforeBuild:
+  Path => BuildIdentifier => Promise<void>
+= workDirPath => async identifier => {
+  const locate = getWorkLocation(workDirPath)(identifier);
+  if (await exists(locate.touchFilePath)) {
+    const now = new Date();
+    const pre = now.setMinutes(now.getMinutes() - waitAcceptedMinutes);
+    if (pre < (await stat(locate.touchFilePath)).ctime) {
+      throw new Error('already accepted');
+    }
+  }
+  await del(locate.dirpath, { force: true });
+  await putFile(locate.touchFilePath)('');
+};
+
+export const afterBuild:
+  Path => BuildIdentifier => Promise<void>
+= workDirPath => async identifier => {
+  const locate = getWorkLocation(workDirPath)(identifier);
+  if (await exists(locate.touchFilePath)) {
+    await del(locate.touchFilePath, { force: true });
+  }
+};
+
 export const buildDiffImages:
   Path => BuildIdentifier => Promise<ImageDiffResult>
 = workDirPath => async identifier => {
@@ -254,7 +281,6 @@ export const buildDiffImages:
   const commonBuildParam = { vcsType: 'github', username, reponame };
   await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum });
   await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: expectBuildNum });
-  await del(locate.dirpath, { force: true });
   const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
     getArtifacts(ciToken),
     andThen(pipe(
