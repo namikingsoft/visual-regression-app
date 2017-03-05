@@ -1,7 +1,6 @@
 // @flow
 import type { $Application } from 'express';
 import type { $SocketIO } from 'socket.io';
-import { postMessage } from 'domains/Slack';
 import { getTextFile } from 'utils/file';
 import { encode, decode } from 'utils/crypt';
 import {
@@ -10,9 +9,10 @@ import {
   getWorkLocation,
   postStartMessage,
   postFinishMessage,
-  beforeBuild,
-  afterBuild,
+  postErrorMessage,
   buildDiffImages,
+  isBuilding,
+  untilFinishBuilding,
   getResource,
 } from 'domains/DiffBuildBackend';
 import * as env from 'env';
@@ -27,19 +27,20 @@ export const resource:
     const { slackIncoming } = extractPayload(req.body);
     const identifier = extractIdentifier(req.body);
     const encoded = encode(env.cryptSecret)(identifier);
-    await beforeBuild(env.workDirPath)(identifier);
-    res.status(202).send({ ...identifier, token: undefined });
-    res.end();
+    if (await isBuilding(env.workDirPath)(identifier)) {
+      throw new Error('already accepted');
+    }
     try {
+      res.status(202).send({ ...identifier, encoded });
+      res.end();
       if (slackIncoming) await postStartMessage(slackIncoming)(identifier);
       const result = await buildDiffImages(env.workDirPath)(identifier);
       const uri = `${env.appUri}/builds/${encoded}`;
       if (slackIncoming) await postFinishMessage(slackIncoming)(result, uri);
     } catch (err) {
-      if (slackIncoming) postMessage(slackIncoming)({ text: err.message });
+      if (slackIncoming) postErrorMessage(slackIncoming)(err);
       console.error(err);
     }
-    await afterBuild(env.workDirPath)(identifier);
   } catch (err) {
     res.status(400).send({ error: err.message });
     throw err;
@@ -65,7 +66,11 @@ export const socket:
     try {
       const { encoded } = payload;
       const identifier = decode(env.cryptSecret)(encoded);
-      await buildDiffImages(env.workDirPath)(identifier);
+      if (await isBuilding(env.workDirPath)(identifier)) {
+        await untilFinishBuilding(env.workDirPath)(identifier);
+      } else {
+        await buildDiffImages(env.workDirPath)(identifier);
+      }
       client.emit('DiffBuild/RUN', { status: true, payload });
     } catch (err) {
       client.emit('DiffBuild/RUN', { status: false, error: err.message });

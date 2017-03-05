@@ -3,7 +3,7 @@ import del from 'del';
 import { getFullResult } from 'image-diff';
 import R, { pipe, always, is } from 'ramda';
 import { andThen, returnPromiseAll } from 'utils/functional';
-import { scanDirWithKey, putFile, exists, stat } from 'utils/file';
+import { scanDirWithKey, getTextFile, putFile, exists, stat } from 'utils/file';
 import { hash } from 'utils/crypt';
 import {
   getArtifacts,
@@ -20,6 +20,8 @@ type PathFilters = any;
 
 const defaultThreshold = 0.005; // %
 const waitAcceptedMinutes = 10;
+const checkFinishCountLimit = 60; // 5 min
+const checkFinishDeltaMsec = 5000;
 
 export type ImageWithoutDiffParam = {
   actualImage: Path,
@@ -248,29 +250,23 @@ export const postFinishMessage:
   }],
 });
 
-export const beforeBuild:
-  Path => BuildIdentifier => Promise<void>
-= workDirPath => async identifier => {
-  const locate = getWorkLocation(workDirPath)(identifier);
-  if (await exists(locate.touchFilePath)) {
-    const now = new Date();
-    const pre = now.setMinutes(now.getMinutes() - waitAcceptedMinutes);
-    if (pre < (await stat(locate.touchFilePath)).ctime) {
-      throw new Error('already accepted');
-    }
-  }
-  await del(locate.dirpath, { force: true });
-  await putFile(locate.touchFilePath)('');
-};
-
-export const afterBuild:
-  Path => BuildIdentifier => Promise<void>
-= workDirPath => async identifier => {
-  const locate = getWorkLocation(workDirPath)(identifier);
-  if (await exists(locate.touchFilePath)) {
-    await del(locate.touchFilePath, { force: true });
-  }
-};
+export const postErrorMessage:
+  SlackIncoming => Error => Promise<MessageResponce>
+= slackIncoming => error => postMessage(slackIncoming)({
+  attachments: [{
+    fallback: error.message,
+    color: '#cc0000',
+    fields: [
+      {
+        title: 'Build Error',
+        value: error.message,
+        short: false,
+      },
+    ],
+    footer: 'Error building images',
+    ts: Math.floor(new Date().getTime() / 1000),
+  }],
+});
 
 export const buildDiffImages:
   Path => BuildIdentifier => Promise<ImageDiffResult>
@@ -278,46 +274,87 @@ export const buildDiffImages:
   const { ciToken, username, reponame, actualBuildNum, expectBuildNum } = identifier;
   const pathFilter = createPathFilter(identifier.pathFilters);
   const locate = getWorkLocation(workDirPath)(identifier);
-  const commonBuildParam = { vcsType: 'github', username, reponame };
-  await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum });
-  await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: expectBuildNum });
-  const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
-    getArtifacts(ciToken),
-    andThen(pipe(
-      R.filter(x => pathFilter(x.path)),
-      saveArtifacts(ciToken)(saveDirPath),
-    )),
-  )({ ...commonBuildParam, buildNum });
-  await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
-  await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
-  const pairPath = {
-    actualImage: locate.actualDirPath,
-    expectedImage: locate.expectDirPath,
-  };
-  const images = await createImageDiffByDir({
-    ...pairPath,
-    diffImage: locate.diffDirPath,
-  });
-  const result = {
-    ...identifier,
-    newImages: await getNewImagePathes(pairPath),
-    delImages: await getDelImagePathes(pairPath),
-    avgPercentage:
-      pipe(
-        R.map(x => x.percentage),
-        R.mean,
-      )(images),
-    maxPercentage:
-      pipe(
-        R.map(x => x.percentage),
-        R.reduce(R.max, 0),
-      )(images),
-    diffCount:
-      R.filter(x => x.percentage > 0)(images).length,
-    images,
-  };
-  await putFile(locate.resultJsonPath)(JSON.stringify(result));
-  return result;
+  if (await isBuilding(workDirPath)(identifier)) {
+    throw new Error('already accepted');
+  }
+  await del(locate.dirpath, { force: true });
+  await putFile(locate.touchFilePath)('');
+  try {
+    const commonBuildParam = { vcsType: 'github', username, reponame };
+    await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum });
+    await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: expectBuildNum });
+    const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
+      getArtifacts(ciToken),
+      andThen(pipe(
+        R.filter(x => pathFilter(x.path)),
+        saveArtifacts(ciToken)(saveDirPath),
+      )),
+    )({ ...commonBuildParam, buildNum });
+    await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
+    await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
+    const pairPath = {
+      actualImage: locate.actualDirPath,
+      expectedImage: locate.expectDirPath,
+    };
+    const images = await createImageDiffByDir({
+      ...pairPath,
+      diffImage: locate.diffDirPath,
+    });
+    const result = {
+      ...identifier,
+      newImages: await getNewImagePathes(pairPath),
+      delImages: await getDelImagePathes(pairPath),
+      avgPercentage:
+        pipe(
+          R.map(x => x.percentage),
+          R.mean,
+        )(images),
+      maxPercentage:
+        pipe(
+          R.map(x => x.percentage),
+          R.reduce(R.max, 0),
+        )(images),
+      diffCount:
+        R.filter(x => x.percentage > 0)(images).length,
+      images,
+    };
+    await putFile(locate.resultJsonPath)(JSON.stringify(result));
+    return result;
+  } catch (err) {
+    if (await exists(locate.touchFilePath)) {
+      await del(locate.touchFilePath, { force: true });
+    }
+    throw err;
+  }
+};
+
+export const isBuilding:
+  Path => BuildIdentifier => Promise<boolean>
+= workDirPath => async identifier => {
+  const locate = getWorkLocation(workDirPath)(identifier);
+  if (await exists(locate.touchFilePath)) {
+    const now = new Date();
+    const pre = now.setMinutes(now.getMinutes() - waitAcceptedMinutes);
+    if (pre < (await stat(locate.touchFilePath)).ctime) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export const untilFinishBuilding:
+  Path => BuildIdentifier => Promise<ImageDiffResult>
+= workDirPath => async identifier => {
+  /* eslint-disable */
+  const locate = getWorkLocation(workDirPath)(identifier);
+  for (let i = 0; i < checkFinishCountLimit; i += 1) {
+    if (await exists(locate.resultJsonPath)) {
+      return await getTextFile(locate.resultJsonPath);
+    }
+    await new Promise(resolve => setTimeout(resolve, checkFinishDeltaMsec));
+  }
+  throw new Error('wait timeout');
+  /* eslint-enable */
 };
 
 export const getResource:

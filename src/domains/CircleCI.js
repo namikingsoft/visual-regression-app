@@ -153,6 +153,6 @@ export const untilDoneBuild:
     if (isDoneBuild(build)) return build;
     await new Promise(resolve => setTimeout(resolve, checkStatusDeltaMsec));
   }
-  throw new Error('error');
+  throw new Error('wait timeout');
   /* eslint-enable */
 };
