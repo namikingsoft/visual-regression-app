@@ -295,7 +295,7 @@ export const buildDiffImages:
 };
 
 export const getResource:
-  ImageDiffResult => Uri => Object // TODO: strict type
+  ImageDiffResult => Uri => Object // TODO: more strict type
 = result => assetUri => ({
   ...result,
   images: result.images.map(x => ({

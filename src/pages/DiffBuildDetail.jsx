@@ -23,6 +23,7 @@ import {
 } from 'domains/DiffBuild';
 import type { DiffBuild, ImageDiff } from 'domains/DiffBuild';
 import ModalImage from 'components/ModalImage';
+import CircleBuildLink from 'components/CircleBuildLink';
 import { setDocumentTitleWithAppName } from 'highorders/setDocumentTitle';
 import style from 'styles/pages/DiffBuildDetail.css';
 
@@ -129,33 +130,39 @@ const DiffImage = ({ image }: { image: ImageDiff }) =>
   </div>
 ;
 
+const DiffImagesHeader = ({ diffBuild, t }: Props) =>
+  <Grid className={style.myDiffImagesHeader}>
+    <Grid.Row columns={3}>
+      <Grid.Column>
+        <h2><Icon name="picture" /> {t('diffBuild.differenceImages')}</h2>
+      </Grid.Column>
+      <Grid.Column>
+        <h3>
+          {t('diffBuild.actual')}&nbsp;
+          <CircleBuildLink
+            username={diffBuild.username}
+            reponame={diffBuild.reponame}
+            buildNum={diffBuild.actualBuildNum}
+          >{`#${diffBuild.actualBuildNum}`}</CircleBuildLink>
+        </h3>
+      </Grid.Column>
+      <Grid.Column>
+        <h3>
+          {t('diffBuild.expect')}&nbsp;
+          <CircleBuildLink
+            username={diffBuild.username}
+            reponame={diffBuild.reponame}
+            buildNum={diffBuild.expectBuildNum}
+          >{`#${diffBuild.expectBuildNum}`}</CircleBuildLink>
+        </h3>
+      </Grid.Column>
+    </Grid.Row>
+  </Grid>
+;
+
 const DiffImages = ({ diffBuild, t }: Props) =>
   <div className={style.myDiffImages}>
-    <Grid className={style.myDiffImagesHeader}>
-      <Grid.Row columns={3}>
-        <Grid.Column>
-          <h2><Icon name="picture" /> {t('diffBuild.differenceImages')}</h2>
-        </Grid.Column>
-        <Grid.Column>
-          <h3>
-            {t('diffBuild.actual')}
-            &nbsp;
-            <a href={`https://circleci.com/gh/${diffBuild.username}/${diffBuild.reponame}/${diffBuild.actualBuildNum}`} target="self">
-              {`#${diffBuild.actualBuildNum}`}
-            </a>
-          </h3>
-        </Grid.Column>
-        <Grid.Column>
-          <h3>
-            {t('diffBuild.expect')}
-            &nbsp;
-            <a href={`https://circleci.com/gh/${diffBuild.username}/${diffBuild.reponame}/${diffBuild.expectBuildNum}`} target="self">
-              {`#${diffBuild.expectBuildNum}`}
-            </a>
-          </h3>
-        </Grid.Column>
-      </Grid.Row>
-    </Grid>
+    <DiffImagesHeader diffBuild={diffBuild} t={t} />
     {listManyDiffImages(diffBuild).map(x => (
       <DiffImage key={x.path} image={x} />
     ))}
@@ -184,7 +191,7 @@ const InOutImages = ({ diffBuild, t }: Props) =>
           <List.Item key={`new${x.path}`} className={style.myInOutImagesItem}>
             <ModalImage image={<Image src={x.imagePath} />} />
             <List.Content>
-              <Icon name="plus" color="green" size="big" /> {x.path}
+              <Icon name="plus" color="green" size="large" /> {x.path}
             </List.Content>
           </List.Item>
         ))}
@@ -192,7 +199,7 @@ const InOutImages = ({ diffBuild, t }: Props) =>
           <List.Item key={`del${x.path}`} className={style.myInOutImagesItem}>
             <ModalImage image={<Image src={x.imagePath} />} />
             <List.Content>
-              <Icon name="minus" color="red" size="big" /> {x.path}
+              <Icon name="minus" color="red" size="large" /> {x.path}
             </List.Content>
           </List.Item>
         ))}

@@ -34,6 +34,7 @@ export const resource:
       await postFinishMessage(slackIncoming)(result, uri);
     } catch (err) {
       postMessage(slackIncoming)({ text: 'Occurred error.' });
+      console.error(err);
     }
   } catch (err) {
     res.status(400).send({ error: err.message });
