@@ -181,30 +181,20 @@ export const postStartMessage:
   SlackIncoming => BuildIdentifier => Promise<MessageResponce>
 = slackIncoming => identifier => postMessage(slackIncoming)({
   attachments: [{
-    fallback: 'Start building images ...',
-    pretext: 'Start building images ...',
+    fallback: 'Start building image diff ...',
+    text: `
+      Start building images diff ... to <${getBuildViewUri({
+        username: identifier.username,
+        reponame: identifier.reponame,
+        buildNum: identifier.actualBuildNum,
+      })}|#${identifier.actualBuildNum}> from <${getBuildViewUri({
+        username: identifier.username,
+        reponame: identifier.reponame,
+        buildNum: identifier.expectBuildNum,
+      })}|#${identifier.expectBuildNum}>
+    `,
     color: '#cccccc',
-    fields: [
-      {
-        title: 'Actual Images',
-        value: getBuildViewUri({
-          username: identifier.username,
-          reponame: identifier.reponame,
-          buildNum: identifier.actualBuildNum,
-        }),
-        short: false,
-      },
-      {
-        title: 'Expected Images',
-        value: getBuildViewUri({
-          username: identifier.username,
-          reponame: identifier.reponame,
-          buildNum: identifier.expectBuildNum,
-        }),
-        short: false,
-      },
-    ],
-    footer: 'Start building images',
+    footer: 'Start building image diff',
     ts: Math.floor(new Date().getTime() / 1000),
   }],
 });
@@ -245,7 +235,7 @@ export const postFinishMessage:
         short: true,
       },
     ],
-    footer: 'Finish building images',
+    footer: 'Finish building image diff',
     ts: Math.floor(new Date().getTime() / 1000),
   }],
 });
