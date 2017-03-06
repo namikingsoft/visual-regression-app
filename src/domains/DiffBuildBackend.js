@@ -138,6 +138,9 @@ export const createImageDiff:
 export const createImageDiffByDir:
   ImageDiffParam => Promise<ImageDiff[]>
 = async ({ actualImage, expectedImage, diffImage }) => {
+  if (!(await exists(actualImage) && exists(await expectedImage))) {
+    throw new Error('not found images for diff');
+  }
   const imageMap1 = await scanDirWithKey(actualImage);
   const imageMap2 = await scanDirWithKey(expectedImage);
   return pipe(
