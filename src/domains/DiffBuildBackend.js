@@ -326,11 +326,10 @@ export const buildDiffImages:
       images,
     };
     await putFile(locate.resultJsonPath)(JSON.stringify(result));
+    await del(locate.touchFilePath, { force: true });
     return result;
   } catch (err) {
-    if (await exists(locate.touchFilePath)) {
-      await del(locate.touchFilePath, { force: true });
-    }
+    await del(locate.touchFilePath, { force: true });
     throw err;
   }
 };
