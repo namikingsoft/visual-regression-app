@@ -42,8 +42,6 @@ export type MessageResponce = {
   message: Message,
 };
 
-const post = request.post();
-
 export const postMessage:
   SlackIncoming => Message => Promise<MessageResponce>
-= post;
+= request.post();
