@@ -17,6 +17,9 @@ import type { SlackIncoming, MessageResponce } from 'domains/Slack';
 type Uri = string;
 type Path = string;
 type PathFilters = any;
+type Percent = number;
+type Message = string;
+type ProgressCallback = (Percent, Message) => any;
 
 const defaultThreshold = 0.005; // %
 const waitAcceptedMinutes = 10;
@@ -276,8 +279,8 @@ export const isBuilding:
 };
 
 export const buildDiffImages:
-  Path => BuildIdentifier => Promise<ImageDiffResult>
-= workDirPath => async identifier => {
+  Path => (BuildIdentifier, ProgressCallback | void) => Promise<ImageDiffResult>
+= workDirPath => async (identifier, progress) => {
   const { ciToken, username, reponame, actualBuildNum, expectBuildNum } = identifier;
   const pathFilter = createPathFilter(identifier.pathFilters);
   const locate = getWorkLocation(workDirPath)(identifier);
@@ -287,9 +290,12 @@ export const buildDiffImages:
   await del(locate.dirpath, { force: true });
   await putFile(locate.touchFilePath)('');
   try {
+    if (progress) progress(20, 'waitDoneCI');
     const commonBuildParam = { vcsType: 'github', username, reponame };
-    await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum });
-    await untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: expectBuildNum });
+    await Promise.all([
+      untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum }),
+      untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: expectBuildNum }),
+    ]);
     const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
       getArtifacts(ciToken),
       andThen(pipe(
@@ -297,8 +303,11 @@ export const buildDiffImages:
         saveArtifacts(ciToken)(saveDirPath),
       )),
     )({ ...commonBuildParam, buildNum });
+    if (progress) progress(40, 'downloadActualArtifacts');
     await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
+    if (progress) progress(60, 'downloadExpectArtifacts');
     await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
+    if (progress) progress(80, 'makeDiffImages');
     const pairPath = {
       actualImage: locate.actualDirPath,
       expectedImage: locate.expectDirPath,
@@ -307,6 +316,7 @@ export const buildDiffImages:
       ...pairPath,
       diffImage: locate.diffDirPath,
     });
+    if (progress) progress(100, 'complete');
     const result = {
       ...identifier,
       newImages: await getNewImagePathes(pairPath),

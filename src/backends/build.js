@@ -69,7 +69,9 @@ export const socket:
       if (await isBuilding(env.workDirPath)(identifier)) {
         await untilFinishBuilding(env.workDirPath)(identifier);
       } else {
-        await buildDiffImages(env.workDirPath)(identifier);
+        await buildDiffImages(env.workDirPath)(identifier, (percent, label) => {
+          client.emit('DiffBuild/PROGRESS', { percent, label });
+        });
       }
       client.emit('DiffBuild/RUN', { status: true, payload });
     } catch (err) {

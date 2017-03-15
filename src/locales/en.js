@@ -2,7 +2,7 @@ export default {
   translation: {
     app: {
       name: 'Image Diff',
-      loading: 'Wait a minite ...',
+      loading: '',
     },
     diffBuild: {
       differenceImages: 'Difference Images',
@@ -24,6 +24,14 @@ export default {
       detail: {
         title: 'Build Detail',
       },
+    },
+    progress: {
+      waitDoneCI: 'Waiting building CI ...',
+      downloadActualArtifacts: 'Downloading actual artifacts ...',
+      downloadExpectArtifacts: 'Downloading expected artifacts ...',
+      makeDiffImages: 'Generating diff images ...',
+      adjustResult: 'Adjusting result ...',
+      complete: 'Complete !!',
     },
     notFound: {
       title: '404 Page Not Found',

@@ -11,16 +11,25 @@ export const websocketMiddleware:
   const socket = SocketIO();
   socket.on('DiffBuild/RUN', async data => {
     if (data.status) {
-      getDiffBuild(data.payload.encoded)(dispatch);
+      await getDiffBuild(data.payload.encoded)(dispatch);
     } else {
       dispatch(replace('/'));
     }
     dispatch({ type: 'Loading/FINISH' });
+    dispatch({ type: 'Progress/FINISH' });
+  });
+  socket.on('DiffBuild/PROGRESS', async data => {
+    dispatch({
+      type: 'Progress/SET',
+      percent: data.percent,
+      label: data.label,
+    });
   });
   return next => action => {
     switch (action.type) {
       case 'DiffBuild/RUN': {
         dispatch({ type: 'Loading/START' });
+        dispatch({ type: 'Progress/START' });
         socket.emit('DiffBuild/RUN', { payload: action.payload });
         break;
       }

@@ -1,0 +1,9 @@
+@import '../variables';
+
+.my {
+  &Loader {
+  }
+  &Progress {
+    transform: translate(0, 60px);
+  }
+}

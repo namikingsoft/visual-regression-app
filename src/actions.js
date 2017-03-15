@@ -7,6 +7,9 @@ export type Action =
   | { type: 'DiffBuild/RUN', payload: EncodedIdentifierParam }
   | { type: 'Loading/START' }
   | { type: 'Loading/FINISH' }
+  | { type: 'Progress/START' }
+  | { type: 'Progress/FINISH' }
+  | { type: 'Progress/SET', percent: number, label: string }
   ;
 
 export type Dispatch = DispatchOrigin<Action>;
