@@ -1,7 +1,7 @@
 // @flow
 
 type Props = {
-  children?: Array<any>,
+  children?: any,
 };
 
 const Through = ({ children }: Props) => children;
