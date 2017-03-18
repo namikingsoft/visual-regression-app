@@ -42,7 +42,7 @@ export const putFile:
   FilePath => Data => Promise<any>
 = filepath => async data => {
   await mkdirWithFile(filepath);
-  return await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     fs.writeFile(filepath, data, err => (err ? reject(err) : resolve(data)));
   });
 };
