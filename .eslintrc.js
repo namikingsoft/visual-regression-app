@@ -11,6 +11,7 @@ module.exports = {
   "rules": {
     "new-cap": 0,
     "no-console": 0,
+    "no-mixed-operators": 0,
     "no-return-await": 0,
     "arrow-parens": [2, "as-needed"],
     "import/prefer-default-export": 0,

@@ -21,18 +21,22 @@ import {
   isLoaded,
   isSuccess,
 } from 'domains/DiffBuild';
-import type { DiffBuild, ImageDiff } from 'domains/DiffBuild';
 import ModalImage from 'components/ModalImage';
 import CircleBuildLink from 'components/CircleBuildLink';
 import { setDocumentTitleWithAppName } from 'highorders/setDocumentTitle';
+import type { Dispatch } from 'actions';
+import type { DiffBuild, ImageDiff } from 'domains/DiffBuild';
 import style from 'styles/pages/DiffBuildDetail.css';
 
-type Props = {
+type NoDispatchProps = {
   diffBuild: DiffBuild,
   t: TFunction,
 };
+type Props = NoDispatchProps & {
+  dispatch: Dispatch,
+};
 
-const Headline = ({ diffBuild, t }: Props) => (isSuccess(diffBuild) ?
+const Headline = ({ diffBuild, t }: NoDispatchProps) => (isSuccess(diffBuild) ?
   <h1 className={style.myHeadline}>
     <Icon name="check circle outline" color="green" size="big" />
     {t('diffBuild.success')}
@@ -44,7 +48,7 @@ const Headline = ({ diffBuild, t }: Props) => (isSuccess(diffBuild) ?
   </h1>
 );
 
-const Statistics = ({ diffBuild, t }: Props) =>
+const Statistics = ({ diffBuild, t }: NoDispatchProps) =>
   <div className={style.myStatistics}>
     <Statistic
       value={countManyDiff(diffBuild)}
@@ -88,7 +92,7 @@ const Statistics = ({ diffBuild, t }: Props) =>
   </div>
 ;
 
-const DiffImage = ({ image }: { image: ImageDiff }) =>
+const DiffImage = ({ image, dispatch }: { image: ImageDiff, dispatch: Dispatch }) =>
   <div className={style.myDiffImage}>
     <h4 className={style.myDiffImageTitle}>
       <Label className={style.myDiffImagePercent} size="large" pointing="below">
@@ -100,29 +104,56 @@ const DiffImage = ({ image }: { image: ImageDiff }) =>
     <Grid>
       <Grid.Row columns={3}>
         <Grid.Column>
-          <ModalImage
-            image={
-              <Image
-                src={image.diffImagePath}
-                alt=""
-                bordered
-                style={{
-                  backgroundImage: `url(${image.expectImagePath})`,
-                  backgroundPosition: 'center top',
-                  backgroundSize: '100% auto',
-                }}
-              />
-            }
+          <Image
+            src={image.diffImagePath}
+            alt=""
+            bordered
+            onClick={() => dispatch({
+              type: 'Lightbox/OPEN',
+              images: [
+                image.diffImagePath,
+                image.actualImagePath,
+                image.expectImagePath,
+              ],
+              index: 0,
+            })}
+            style={{
+              backgroundImage: `url(${image.expectImagePath})`,
+              backgroundPosition: 'center top',
+              backgroundSize: '100% auto',
+            }}
           />
         </Grid.Column>
         <Grid.Column>
-          <ModalImage
-            image={<Image src={image.actualImagePath} alt="" bordered />}
+          <Image
+            src={image.actualImagePath}
+            alt=""
+            bordered
+            onClick={() => dispatch({
+              type: 'Lightbox/OPEN',
+              images: [
+                image.diffImagePath,
+                image.actualImagePath,
+                image.expectImagePath,
+              ],
+              index: 1,
+            })}
           />
         </Grid.Column>
         <Grid.Column>
-          <ModalImage
-            image={<Image src={image.expectImagePath} alt="" bordered />}
+          <Image
+            src={image.expectImagePath}
+            alt=""
+            bordered
+            onClick={() => dispatch({
+              type: 'Lightbox/OPEN',
+              images: [
+                image.diffImagePath,
+                image.actualImagePath,
+                image.expectImagePath,
+              ],
+              index: 2,
+            })}
           />
         </Grid.Column>
       </Grid.Row>
@@ -130,7 +161,7 @@ const DiffImage = ({ image }: { image: ImageDiff }) =>
   </div>
 ;
 
-const DiffImagesHeader = ({ diffBuild, t }: Props) =>
+const DiffImagesHeader = ({ diffBuild, t }: NoDispatchProps) =>
   <Grid className={style.myDiffImagesHeader}>
     <Grid.Row columns={3}>
       <Grid.Column>
@@ -160,11 +191,11 @@ const DiffImagesHeader = ({ diffBuild, t }: Props) =>
   </Grid>
 ;
 
-const DiffImages = ({ diffBuild, t }: Props) =>
+const DiffImages = ({ diffBuild, dispatch, t }: Props) =>
   <div className={style.myDiffImages}>
-    <DiffImagesHeader diffBuild={diffBuild} t={t} />
+    <DiffImagesHeader diffBuild={diffBuild} dispatch={dispatch} t={t} />
     {listManyDiffImages(diffBuild).map(x => (
-      <DiffImage key={x.path} image={x} />
+      <DiffImage key={x.path} image={x} dispatch={dispatch} />
     ))}
     <Accordion className={style.myDiffImagesLesses}>
       <Accordion.Title>
@@ -173,14 +204,14 @@ const DiffImages = ({ diffBuild, t }: Props) =>
       </Accordion.Title>
       <Accordion.Content>
         {listLessDiffImages(diffBuild).map(x => (
-          <DiffImage key={x.path} image={x} />
+          <DiffImage key={x.path} image={x} dispatch={dispatch} />
         ))}
       </Accordion.Content>
     </Accordion>
   </div>
 ;
 
-const InOutImages = ({ diffBuild, t }: Props) =>
+const InOutImages = ({ diffBuild, t }: NoDispatchProps) =>
   <div className={style.myInOutImages}>
     <h2 className={style.myInOutImagesHeader}>
       <Icon name="exchange" /> {t('diffBuild.inOutImages')}
@@ -209,12 +240,13 @@ const InOutImages = ({ diffBuild, t }: Props) =>
   </div>
 ;
 
-const DiffBuildDetail = ({ diffBuild, t }: Props) => isLoaded(diffBuild) &&
+const DiffBuildDetail = ({ dispatch, ...props }: Props) =>
+  isLoaded(props.diffBuild) &&
   <div className={style.my}>
-    <Headline diffBuild={diffBuild} t={t} />
-    <Statistics diffBuild={diffBuild} t={t} />
-    <DiffImages diffBuild={diffBuild} t={t} />
-    <InOutImages diffBuild={diffBuild} t={t} />
+    <Headline {...props} />
+    <Statistics {...props} />
+    <DiffImages {...props} dispatch={dispatch} />
+    <InOutImages {...props} />
   </div>
 ;
 

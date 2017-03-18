@@ -1,0 +1,11 @@
+@import '../variables';
+
+:global(.toolbar.ril-toolbar) {
+  background-color: #0002;
+  left: auto;
+  width: 145px;
+  height: 55px;
+}
+
+.my {
+}
