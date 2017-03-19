@@ -4,6 +4,8 @@ import { pipe } from 'ramda';
 import {
   returnPromise,
   returnPromiseAll,
+  returnPromiseInOrder,
+  mapSeriesPromise,
   andThen,
   camelize,
   dump,
@@ -41,6 +43,33 @@ describe('utils/functional', () => {
           returnPromise(3),
           returnPromise(4),
         ]),
+        [1, 2, 3, 4],
+      );
+    });
+  });
+
+  describe('returnPromiseInOrder', () => {
+    it('should be collect array of Promise in order', async () => {
+      let value = 0; // eslint-disable-line
+      assert.deepEqual(
+        await returnPromiseInOrder([
+          () => new Promise(resolve => (
+            setTimeout(() => { value = 5; resolve(1); }, 10)
+          )),
+          () => returnPromise(2),
+          () => returnPromise(3),
+          () => returnPromise(4),
+          () => returnPromise(value),
+        ]),
+        [1, 2, 3, 4, 5],
+      );
+    });
+  });
+
+  describe('mapSeriesPromise', () => {
+    it('should be map value to Promise in order', async () => {
+      assert.deepEqual(
+        await mapSeriesPromise(returnPromise)([1, 2, 3, 4]),
         [1, 2, 3, 4],
       );
     });

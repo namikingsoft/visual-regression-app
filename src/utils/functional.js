@@ -10,6 +10,26 @@ export const returnPromiseAll:
   <A:any>(Promise<A>[]) => Promise<A[]>
 = xs => Promise.all(xs);
 
+export const returnPromiseInOrder:
+  <A:any>((void => Promise<A>)[]) => Promise<A[]>
+= async xs => {
+  const results = [];
+  await xs.reduce(
+    (acc, fn) => acc.then(async () => {
+      results.push(await fn());
+    }),
+    Promise.resolve(),
+  );
+  return results;
+};
+
+export const mapSeriesPromise:
+  <A:any, B:any>(A => Promise<B>) => A[] => Promise<B[]>
+= fn => pipe(
+  map(x => () => fn(x)),
+  returnPromiseInOrder,
+);
+
 export const andThen:
   <A:any, B:any>(A => Promise<B>) => Promise<A> => Promise<B>
 = fn => p => p.then(fn);
