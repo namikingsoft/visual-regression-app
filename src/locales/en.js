@@ -30,6 +30,7 @@ export default {
       downloadActualArtifacts: 'Downloading actual artifacts ...',
       downloadExpectArtifacts: 'Downloading expected artifacts ...',
       makeDiffImages: 'Generating diff images ...',
+      composeDiffImages: 'Composing diff images ...',
       adjustResult: 'Adjusting result ...',
       complete: 'Complete !!',
     },

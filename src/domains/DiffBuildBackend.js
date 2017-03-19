@@ -1,5 +1,6 @@
 // @flow
 import del from 'del';
+import im from 'imagemagick';
 import { getFullResult } from 'image-diff';
 import R, { pipe, always, is } from 'ramda';
 import { andThen, returnPromiseAll } from 'utils/functional';
@@ -161,6 +162,41 @@ export const createImageDiffByDir:
   )(imageMap1);
 };
 
+export const composeImageDiff:
+  ImageDiffParam => Promise<void>
+= ({ actualImage, diffImage }) => new Promise((resolve, reject) => im.convert(
+  [
+    actualImage,
+    diffImage,
+    '-gravity',
+    'southeast',
+    '-compose',
+    'over',
+    '-composite',
+    diffImage,
+  ],
+  err => (err ? reject(err) : resolve()),
+));
+
+export const composeImageDiffByDir:
+  ImageDiffParam => Promise<void>
+= async ({ actualImage, diffImage }) => {
+  const imageMap1 = await scanDirWithKey(diffImage);
+  const imageMap2 = await scanDirWithKey(actualImage);
+  return pipe(
+    R.keys,
+    R.map(async x => ({
+      ...await composeImageDiff({
+        diffImage: imageMap1[x],
+        actualImage: imageMap2[x],
+        expectedImage: '',
+      }),
+      path: x,
+    })),
+    returnPromiseAll,
+  )(imageMap1);
+};
+
 export const getNewImagePathes:
   ImageWithoutDiffParam => Promise<Path[]>
 = async ({ actualImage, expectedImage }) => {
@@ -290,7 +326,7 @@ export const buildDiffImages:
   await del(locate.dirpath, { force: true });
   await putFile(locate.touchFilePath)('');
   try {
-    if (progress) progress(20, 'waitDoneCI');
+    if (progress) progress(10, 'waitDoneCI');
     const commonBuildParam = { vcsType: 'github', username, reponame };
     await Promise.all([
       untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum }),
@@ -303,16 +339,21 @@ export const buildDiffImages:
         saveArtifacts(ciToken)(saveDirPath),
       )),
     )({ ...commonBuildParam, buildNum });
-    if (progress) progress(40, 'downloadActualArtifacts');
+    if (progress) progress(20, 'downloadActualArtifacts');
     await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
-    if (progress) progress(60, 'downloadExpectArtifacts');
+    if (progress) progress(40, 'downloadExpectArtifacts');
     await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
-    if (progress) progress(80, 'makeDiffImages');
+    if (progress) progress(60, 'makeDiffImages');
     const pairPath = {
       actualImage: locate.actualDirPath,
       expectedImage: locate.expectDirPath,
     };
     const images = await createImageDiffByDir({
+      ...pairPath,
+      diffImage: locate.diffDirPath,
+    });
+    if (progress) progress(80, 'composeDiffImages');
+    await composeImageDiffByDir({
       ...pairPath,
       diffImage: locate.diffDirPath,
     });

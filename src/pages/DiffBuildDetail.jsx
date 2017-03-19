@@ -117,11 +117,6 @@ const DiffImage = ({ image, dispatch }: { image: ImageDiff, dispatch: Dispatch }
               ],
               index: 0,
             })}
-            style={{
-              backgroundImage: `url(${image.expectImagePath})`,
-              backgroundPosition: 'center top',
-              backgroundSize: '100% auto',
-            }}
           />
         </Grid.Column>
         <Grid.Column>
