@@ -8,7 +8,7 @@ import {
   Grid,
   Accordion,
   Icon,
-  List,
+  Item,
   Label,
   Image,
   Statistic,
@@ -206,34 +206,37 @@ const DiffImages = ({ diffBuild, dispatch, t }: Props) =>
   </div>
 ;
 
-const InOutImages = ({ diffBuild, t }: NoDispatchProps) =>
-  <div className={style.myInOutImages}>
-    <h2 className={style.myInOutImagesHeader}>
-      <Icon name="exchange" /> {t('diffBuild.inOutImages')}
-    </h2>
-    {diffBuild.newImages && diffBuild.delImages ?
-      <List>
+const InOutImages = ({ diffBuild, t }: NoDispatchProps) => (
+  diffBuild.newImages.length > 0 || diffBuild.delImages.length > 0 ?
+    <div className={style.myInOutImages}>
+      <h2 className={style.myInOutImagesHeader}>
+        <Icon name="exchange" /> {t('diffBuild.inOutImages')}
+      </h2>
+      <Item.Group divided>
         {diffBuild.newImages.map(x => (
-          <List.Item key={`new${x.path}`} className={style.myInOutImagesItem}>
-            <ModalImage image={<Image src={x.imagePath} />} />
-            <List.Content>
-              <Icon name="plus" color="green" size="large" /> {x.path}
-            </List.Content>
-          </List.Item>
+          <Item key={`new${x.path}`}>
+            <ModalImage image={<Item.Image src={x.imagePath} />} />
+            <Item.Content verticalAlign="middle">
+              <Item.Header style={{ fontWeight: 'normal' }}>
+                <Icon name="plus" color="green" size="huge" /> {x.path}
+              </Item.Header>
+            </Item.Content>
+          </Item>
         ))}
         {diffBuild.delImages.map(x => (
-          <List.Item key={`del${x.path}`} className={style.myInOutImagesItem}>
-            <ModalImage image={<Image src={x.imagePath} />} />
-            <List.Content>
-              <Icon name="minus" color="red" size="large" /> {x.path}
-            </List.Content>
-          </List.Item>
+          <Item key={`del${x.path}`}>
+            <ModalImage image={<Item.Image src={x.imagePath} />} />
+            <Item.Content verticalAlign="middle">
+              <Item.Header style={{ fontWeight: 'normal' }}>
+                <Icon name="plus" color="green" size="huge" /> {x.path}
+              </Item.Header>
+            </Item.Content>
+          </Item>
         ))}
-      </List>
-    : <div>{t('diffBuild.nothing')}</div>
-    }
-  </div>
-;
+      </Item.Group>
+    </div>
+  : null
+);
 
 const DiffBuildDetail = ({ dispatch, ...props }: Props) =>
   isLoaded(props.diffBuild) &&

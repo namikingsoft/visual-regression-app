@@ -35,11 +35,8 @@
     &Header {
       margin-bottom: 30px;
     }
-    &Item {
-      & > img {
-        width: 125px;
-        cursor: pointer;
-      }
+    img {
+      cursor: pointer;
     }
   }
 }
