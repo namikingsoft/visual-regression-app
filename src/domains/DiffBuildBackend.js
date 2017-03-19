@@ -185,13 +185,10 @@ export const composeImageDiffByDir:
   const imageMap2 = await scanDirWithKey(actualImage);
   return pipe(
     R.keys,
-    R.map(async x => ({
-      ...await composeImageDiff({
-        diffImage: imageMap1[x],
-        actualImage: imageMap2[x],
-        expectedImage: '',
-      }),
-      path: x,
+    R.map(x => composeImageDiff({
+      diffImage: imageMap1[x],
+      actualImage: imageMap2[x],
+      expectedImage: '',
     })),
     returnPromiseAll,
   )(imageMap1);
