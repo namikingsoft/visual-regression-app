@@ -2,8 +2,10 @@
 import { pipe, filter, sortBy, not, length } from 'ramda';
 import type { Reducer } from 'redux';
 import type { Action } from 'actions';
+import type { BuildParam as BuildParamBackend } from 'domains/DiffBuildBackend';
 import * as API from 'domains/API';
 
+export type BuildParam = BuildParamBackend;
 export type EncodedIdentifier = string;
 export type Path = string;
 
@@ -22,11 +24,6 @@ export type ImageInfo = {
 };
 
 export type DiffBuild = {
-  ciToken: string,
-  username: Path,
-  reponame: Path,
-  actualBuildNum: number,
-  expectBuildNum: number,
   maxPercentage: number,
   avgPercentage: number,
   diffCount: number,
@@ -35,6 +32,7 @@ export type DiffBuild = {
   threshold: number,
   pathFilters: any,
   images: ImageDiff[],
+  isLoaded: boolean,
 };
 
 export type EncodedIdentifierParam = {
@@ -42,11 +40,6 @@ export type EncodedIdentifierParam = {
 };
 
 const initialState = {
-  ciToken: '',
-  username: '',
-  reponame: '',
-  actualBuildNum: 0,
-  expectBuildNum: 0,
   maxPercentage: 0,
   avgPercentage: 0,
   diffCount: 0,
@@ -55,11 +48,12 @@ const initialState = {
   newImages: [],
   delImages: [],
   images: [],
+  isLoaded: false,
 };
 
 export const isLoaded:
   DiffBuild => boolean
-= x => x.username !== '';
+= x => x.isLoaded;
 
 export const isSuccess:
   DiffBuild => boolean
@@ -126,18 +120,18 @@ export const listLessDiffImages:
 );
 
 export const getDiffBuild:
-  EncodedIdentifier => Dispatch => Promise<any>
-= encoded => async dispatch => {
+  BuildParam => Dispatch => Promise<any>
+= buildParam => async dispatch => {
   try {
     dispatch({ type: 'Loading/START' });
     dispatch({
       type: 'DiffBuild/CREATE',
-      payload: await API.getDiffBuild(encoded),
+      payload: await API.getDiffBuild(buildParam),
     });
   } catch (e) {
     dispatch({
       type: 'DiffBuild/RUN',
-      payload: { encoded },
+      payload: buildParam,
     });
   }
   dispatch({ type: 'Loading/FINISH' });
@@ -148,7 +142,7 @@ export const reducer:
 = (state = initialState, action) => {
   switch (action.type) {
     case 'DiffBuild/CREATE':
-      return { ...action.payload };
+      return { ...action.payload, isLoaded: true };
     default:
       return state;
   }

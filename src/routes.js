@@ -21,7 +21,7 @@ export default {
       },
       childRoutes: [
         {
-          path: 'builds/:encoded',
+          path: 'builds',
           component: fetchDiffBuild(DiffBuildDetail),
         },
         {

@@ -22,12 +22,14 @@ import {
   isSuccess,
 } from 'domains/DiffBuild';
 import ModalImage from 'components/ModalImage';
-import CircleBuildLink from 'components/CircleBuildLink';
 import { setDocumentTitleWithAppName } from 'highorders/setDocumentTitle';
 import type { Dispatch } from 'actions';
 import type { DiffBuild, ImageDiff } from 'domains/DiffBuild';
 import style from 'styles/pages/DiffBuildDetail.css';
 
+type TProps = {
+  t: TFunction,
+};
 type NoDispatchProps = {
   diffBuild: DiffBuild,
   t: TFunction,
@@ -156,31 +158,17 @@ const DiffImage = ({ image, dispatch }: { image: ImageDiff, dispatch: Dispatch }
   </div>
 ;
 
-const DiffImagesHeader = ({ diffBuild, t }: NoDispatchProps) =>
+const DiffImagesHeader = ({ t }: TProps) =>
   <Grid className={style.myDiffImagesHeader}>
     <Grid.Row columns={3}>
       <Grid.Column>
         <h2><Icon name="picture" /> {t('diffBuild.differenceImages')}</h2>
       </Grid.Column>
       <Grid.Column>
-        <h3>
-          {t('diffBuild.actual')}&nbsp;
-          <CircleBuildLink
-            username={diffBuild.username}
-            reponame={diffBuild.reponame}
-            buildNum={diffBuild.actualBuildNum}
-          >{`#${diffBuild.actualBuildNum}`}</CircleBuildLink>
-        </h3>
+        <h3>{t('diffBuild.actual')}</h3>
       </Grid.Column>
       <Grid.Column>
-        <h3>
-          {t('diffBuild.expect')}&nbsp;
-          <CircleBuildLink
-            username={diffBuild.username}
-            reponame={diffBuild.reponame}
-            buildNum={diffBuild.expectBuildNum}
-          >{`#${diffBuild.expectBuildNum}`}</CircleBuildLink>
-        </h3>
+        <h3>{t('diffBuild.expect')}</h3>
       </Grid.Column>
     </Grid.Row>
   </Grid>
@@ -188,7 +176,7 @@ const DiffImagesHeader = ({ diffBuild, t }: NoDispatchProps) =>
 
 const DiffImages = ({ diffBuild, dispatch, t }: Props) =>
   <div className={style.myDiffImages}>
-    <DiffImagesHeader diffBuild={diffBuild} dispatch={dispatch} t={t} />
+    <DiffImagesHeader t={t} />
     {listManyDiffImages(diffBuild).map(x => (
       <DiffImage key={x.path} image={x} dispatch={dispatch} />
     ))}

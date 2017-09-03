@@ -13,6 +13,7 @@ import {
   getBuildViewUri,
 } from 'domains/CircleCI';
 import { postMessage } from 'domains/Slack';
+import { downloadDirFromS3 } from 'utils/s3';
 import type { SlackIncoming, MessageResponce } from 'domains/Slack';
 
 type Uri = string;
@@ -42,27 +43,27 @@ export type ImageDiff = {
   path?: Path,
 };
 
-export type BuildIdentifier = {
-  ciToken: string,
-  username: string,
-  reponame: string,
-  actualBuildNum: number,
-  expectBuildNum: number,
+export type S3Param = {
+  accessKeyId: string,
+  secretAccessKey: string,
+  bucketName: string,
+};
+
+export type BuildParam = {
+  expectId: string,
+  actualId: string,
   threshold: number,
   pathFilters?: string[],
 };
 
-export type RequestPayload = BuildIdentifier & {
-  slackIncoming?: string,
-};
-
-export type ImageDiffResult = BuildIdentifier & {
+export type ImageDiffResult = {
   newImages: Path[],
   delImages: Path[],
   maxPercentage: number,
   avgPercentage: number,
   diffCount: number,
   images: ImageDiff[],
+  threshold: number,
 };
 
 export type WorkLocation = {
@@ -76,7 +77,7 @@ export type WorkLocation = {
 }
 
 export const getWorkLocation:
-  Path => BuildIdentifier => WorkLocation
+  Path => BuildParam => WorkLocation
 = workDirPath => identifier => {
   const hashed = hash(identifier);
   const dirpath = `${workDirPath}/${hashed}`;
@@ -91,28 +92,10 @@ export const getWorkLocation:
   };
 };
 
-export const extractPayload:
-  Object => RequestPayload
+export const extractBuildParam:
+  Object => BuildParam
 = x => ({
-  ciToken: x.ciToken,
-  username: x.username,
-  reponame: x.reponame,
-  actualBuildNum: x.actualBuildNum,
-  expectBuildNum: x.expectBuildNum,
-  slackIncoming: x.slackIncoming,
-  pathFilters: x.pathFilters,
-  threshold: x.threshold || defaultThreshold,
-});
-
-export const extractIdentifier:
-  Object => BuildIdentifier
-= x => ({
-  ciToken: x.ciToken,
-  username: x.username,
-  reponame: x.reponame,
-  actualBuildNum: x.actualBuildNum,
-  expectBuildNum: x.expectBuildNum,
-  pathFilters: x.pathFilters,
+  ...x,
   threshold: x.threshold || defaultThreshold,
 });
 
@@ -216,28 +199,6 @@ export const getDelImagePathes:
   )(imageMap2);
 };
 
-export const postStartMessage:
-  SlackIncoming => BuildIdentifier => Promise<MessageResponce>
-= slackIncoming => identifier => postMessage(slackIncoming)({
-  attachments: [{
-    fallback: 'Start building image diff ...',
-    text: `
-      Start building images diff ... to <${getBuildViewUri({
-        username: identifier.username,
-        reponame: identifier.reponame,
-        buildNum: identifier.actualBuildNum,
-      })}|#${identifier.actualBuildNum}> from <${getBuildViewUri({
-        username: identifier.username,
-        reponame: identifier.reponame,
-        buildNum: identifier.expectBuildNum,
-      })}|#${identifier.expectBuildNum}>
-    `,
-    color: '#cccccc',
-    footer: 'Start building image diff',
-    ts: Math.floor(new Date().getTime() / 1000),
-  }],
-});
-
 const countManyDiff:
   ImageDiffResult => number
 = x => x.images.filter(y => y.percentage > x.threshold).length;
@@ -298,9 +259,9 @@ export const postErrorMessage:
 });
 
 export const isBuilding:
-  Path => BuildIdentifier => Promise<boolean>
-= workDirPath => async identifier => {
-  const locate = getWorkLocation(workDirPath)(identifier);
+  Path => BuildParam => Promise<boolean>
+= workDirPath => async buildParam => {
+  const locate = getWorkLocation(workDirPath)(buildParam);
   if (await exists(locate.touchFilePath)) {
     const now = new Date();
     const pre = now.setMinutes(now.getMinutes() - waitAcceptedMinutes);
@@ -311,35 +272,32 @@ export const isBuilding:
   return false;
 };
 
-export const buildDiffImages:
-  Path => (BuildIdentifier, ProgressCallback | void) => Promise<ImageDiffResult>
-= workDirPath => async (identifier, progress) => {
-  const { ciToken, username, reponame, actualBuildNum, expectBuildNum } = identifier;
-  const pathFilter = createPathFilter(identifier.pathFilters);
-  const locate = getWorkLocation(workDirPath)(identifier);
-  if (await isBuilding(workDirPath)(identifier)) {
+export const buildDiffImagesFromS3:
+  (Path, S3Param) => (BuildParam, ProgressCallback | void) => Promise<ImageDiffResult>
+= (workDirPath, s3Param) => async (buildParam, progress) => {
+  const {
+    expectId,
+    actualId,
+    threshold,
+  } = buildParam;
+  const pathFilter = createPathFilter(buildParam.pathFilters);
+  const locate = getWorkLocation(workDirPath)(buildParam);
+  if (await isBuilding(workDirPath)(buildParam)) {
     throw new Error('already accepted');
   }
   await del(locate.dirpath, { force: true });
   await putFile(locate.touchFilePath)('');
   try {
-    if (progress) progress(10, 'waitDoneCI');
-    const commonBuildParam = { vcsType: 'github', username, reponame };
-    await Promise.all([
-      untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: actualBuildNum }),
-      untilDoneBuild(ciToken)({ ...commonBuildParam, buildNum: expectBuildNum }),
-    ]);
-    const saveFilteredArtifacts = buildNum => saveDirPath => pipe(
-      getArtifacts(ciToken),
-      andThen(pipe(
-        R.filter(x => pathFilter(x.path)),
-        saveArtifacts(ciToken)(saveDirPath),
-      )),
-    )({ ...commonBuildParam, buildNum });
     if (progress) progress(20, 'downloadActualArtifacts');
-    await saveFilteredArtifacts(actualBuildNum)(locate.actualDirPath);
+    await downloadDirFromS3(s3Param)({
+      Bucket: s3Param.bucketName,
+      Prefix: expectId,
+    }, locate.expectDirPath);
     if (progress) progress(40, 'downloadExpectArtifacts');
-    await saveFilteredArtifacts(expectBuildNum)(locate.expectDirPath);
+    await downloadDirFromS3(s3Param)({
+      Bucket: s3Param.bucketName,
+      Prefix: actualId,
+    }, locate.actualDirPath);
     if (progress) progress(60, 'makeDiffImages');
     const pairPath = {
       actualImage: locate.actualDirPath,
@@ -356,7 +314,6 @@ export const buildDiffImages:
     });
     if (progress) progress(100, 'complete');
     const result = {
-      ...identifier,
       newImages: await getNewImagePathes(pairPath),
       delImages: await getDelImagePathes(pairPath),
       avgPercentage:
@@ -372,6 +329,7 @@ export const buildDiffImages:
       diffCount:
         R.filter(x => x.percentage > 0)(images).length,
       images,
+      threshold,
     };
     await putFile(locate.resultJsonPath)(JSON.stringify(result));
     await del(locate.touchFilePath, { force: true });
@@ -383,10 +341,10 @@ export const buildDiffImages:
 };
 
 export const untilFinishBuilding:
-  Path => BuildIdentifier => Promise<ImageDiffResult>
-= workDirPath => async identifier => {
+  Path => BuildParam => Promise<ImageDiffResult>
+= workDirPath => async buildParam => {
   /* eslint-disable */
-  const locate = getWorkLocation(workDirPath)(identifier);
+  const locate = getWorkLocation(workDirPath)(buildParam);
   for (let i = 0; i < checkFinishCountLimit; i += 1) {
     if (await exists(locate.resultJsonPath)) {
       return await getTextFile(locate.resultJsonPath);

@@ -2,15 +2,10 @@
 import type { $Application } from 'express';
 import type { $SocketIO } from 'socket.io';
 import { getTextFile } from 'utils/file';
-import { encode, decode } from 'utils/crypt';
 import {
-  extractPayload,
-  extractIdentifier,
+  extractBuildParam,
   getWorkLocation,
-  postStartMessage,
-  postFinishMessage,
-  postErrorMessage,
-  buildDiffImages,
+  buildDiffImagesFromS3,
   isBuilding,
   untilFinishBuilding,
   getResource,
@@ -22,35 +17,10 @@ type Route = string;
 export const resource:
   Route => $Application => $Application
 = route => app => (app: any)
-.post(route, async (req, res) => {
+.get(route, async (req, res) => {
   try {
-    const { slackIncoming } = extractPayload(req.body);
-    const identifier = extractIdentifier(req.body);
-    const encoded = encode(env.cryptSecret)(identifier);
-    if (await isBuilding(env.workDirPath)(identifier)) {
-      throw new Error('already accepted');
-    }
-    try {
-      res.status(202).send({ ...identifier, encoded });
-      res.end();
-      if (slackIncoming) await postStartMessage(slackIncoming)(identifier);
-      const result = await buildDiffImages(env.workDirPath)(identifier);
-      const uri = `${env.appUri}/builds/${encoded}`;
-      if (slackIncoming) await postFinishMessage(slackIncoming)(result, uri);
-    } catch (err) {
-      if (slackIncoming) postErrorMessage(slackIncoming)(err);
-      console.error(err);
-    }
-  } catch (err) {
-    res.status(400).send({ error: err.message });
-    throw err;
-  }
-})
-.get(`${route}/:encoded`, async (req, res) => {
-  try {
-    const { encoded } = req.params;
-    const identifier = decode(env.cryptSecret)(encoded);
-    const { hashed, resultJsonPath } = getWorkLocation(env.workDirPath)(identifier);
+    const buildParam = extractBuildParam(req.query);
+    const { hashed, resultJsonPath } = getWorkLocation(env.workDirPath)(buildParam);
     const result = JSON.parse(await getTextFile(resultJsonPath));
     res.status(200).send(getResource(result)(`${env.appUri}/assets/${hashed}`));
   } catch (err) {
@@ -64,12 +34,17 @@ export const socket:
 = io => io.on('connection', client => client
   .on('DiffBuild/RUN', async ({ payload }) => {
     try {
-      const { encoded } = payload;
-      const identifier = decode(env.cryptSecret)(encoded);
-      if (await isBuilding(env.workDirPath)(identifier)) {
-        await untilFinishBuilding(env.workDirPath)(identifier);
+      const s3param = {
+        accessKeyId: env.awsAccessKeyId,
+        secretAccessKey: env.awsSecretAccessKey,
+        bucketName: env.awsS3BucketName,
+      };
+      const buildParam = extractBuildParam(payload);
+      if (await isBuilding(env.workDirPath)(buildParam)) {
+        await untilFinishBuilding(env.workDirPath)(buildParam);
       } else {
-        await buildDiffImages(env.workDirPath)(identifier, (percent, label) => {
+        const buildDiffImages = buildDiffImagesFromS3(env.workDirPath, s3param);
+        await buildDiffImages(buildParam, (percent, label) => {
           client.emit('DiffBuild/PROGRESS', { percent, label });
         });
       }
