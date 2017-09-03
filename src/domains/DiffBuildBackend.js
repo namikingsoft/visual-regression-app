@@ -3,15 +3,9 @@ import del from 'del';
 import im from 'imagemagick';
 import { getFullResult } from 'image-diff';
 import R, { pipe, always, is } from 'ramda';
-import { andThen, returnPromiseAll } from 'utils/functional';
+import { returnPromiseAll } from 'utils/functional';
 import { scanDirWithKey, getTextFile, putFile, exists, stat } from 'utils/file';
 import { hash } from 'utils/crypt';
-import {
-  getArtifacts,
-  saveArtifacts,
-  untilDoneBuild,
-  getBuildViewUri,
-} from 'domains/CircleCI';
 import { postMessage } from 'domains/Slack';
 import { downloadDirFromS3 } from 'utils/s3';
 import type { SlackIncoming, MessageResponce } from 'domains/Slack';
