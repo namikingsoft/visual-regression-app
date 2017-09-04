@@ -89,8 +89,10 @@ export const getWorkLocation:
 export const extractBuildParam:
   Object => BuildParam
 = x => ({
-  ...x,
+  expectId: x.expectId,
+  actualId: x.actualId,
   threshold: x.threshold || defaultThreshold,
+  pathFilters: x.pathFilters || [],
 });
 
 export const createPathFilter:

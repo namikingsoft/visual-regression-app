@@ -1,10 +1,13 @@
 // @flow
 import type { $Application } from 'express';
 import type { $SocketIO } from 'socket.io';
+import { stringify } from 'query-string';
 import { getTextFile } from 'utils/file';
 import {
   extractBuildParam,
   getWorkLocation,
+  postFinishMessage,
+  postErrorMessage,
   buildDiffImagesFromS3,
   isBuilding,
   untilFinishBuilding,
@@ -14,9 +17,38 @@ import * as env from 'env';
 
 type Route = string;
 
+const s3param = {
+  accessKeyId: env.awsAccessKeyId,
+  secretAccessKey: env.awsSecretAccessKey,
+  bucketName: env.awsS3BucketName,
+};
+
 export const resource:
   Route => $Application => $Application
 = route => app => (app: any)
+.post(route, async (req, res) => {
+  try {
+    const { slackIncoming } = req.body;
+    const buildParam = extractBuildParam(req.body);
+    if (await isBuilding(env.workDirPath)(buildParam)) {
+      throw new Error('already accepted');
+    }
+    try {
+      res.status(202).send({ ...buildParam });
+      res.end();
+      const buildDiffImages = buildDiffImagesFromS3(env.workDirPath, s3param);
+      const result = await buildDiffImages(buildParam);
+      const uri = `${env.appUri}/builds?${stringify(buildParam)}`;
+      if (slackIncoming) await postFinishMessage(slackIncoming)(result, uri);
+    } catch (err) {
+      if (slackIncoming) postErrorMessage(slackIncoming)(err);
+      console.error(err);
+    }
+  } catch (err) {
+    res.status(400).send({ error: err.message });
+    throw err;
+  }
+})
 .get(route, async (req, res) => {
   try {
     const buildParam = extractBuildParam(req.query);
@@ -34,11 +66,6 @@ export const socket:
 = io => io.on('connection', client => client
   .on('DiffBuild/RUN', async ({ payload }) => {
     try {
-      const s3param = {
-        accessKeyId: env.awsAccessKeyId,
-        secretAccessKey: env.awsSecretAccessKey,
-        bucketName: env.awsS3BucketName,
-      };
       const buildParam = extractBuildParam(payload);
       if (await isBuilding(env.workDirPath)(buildParam)) {
         await untilFinishBuilding(env.workDirPath)(buildParam);
