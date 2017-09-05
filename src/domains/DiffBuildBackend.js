@@ -92,7 +92,7 @@ export const extractBuildParam:
   expectId: x.expectId,
   actualId: x.actualId,
   threshold: Number(x.threshold || defaultThreshold),
-  pathFilters: R.flatten([x.pathFilters]),
+  pathFilters: R.flatten([x.pathFilters || []]),
 });
 
 export const createPathFilter:
