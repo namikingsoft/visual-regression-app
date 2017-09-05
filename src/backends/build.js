@@ -35,7 +35,7 @@ export const resource:
       throw new Error('already accepted');
     }
     try {
-      res.status(202).send({ ...buildParam, url });
+      res.status(202).send(JSON.stringify({ ...buildParam, url }));
       res.end();
       const buildDiffImages = buildDiffImagesFromS3(env.workDirPath, s3param);
       const result = await buildDiffImages(buildParam, (per, label) => {
