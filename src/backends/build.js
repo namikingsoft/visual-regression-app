@@ -30,18 +30,19 @@ export const resource:
   try {
     const { slackIncoming } = req.body;
     const buildParam = extractBuildParam(req.body);
-    const url = `${env.appUri}/builds?${stringify(buildParam)}`;
+    const urlView = `${env.appUri}/builds?${stringify(buildParam)}`;
+    const urlInfo = `${env.appUri}${route}?${stringify(buildParam)}`;
     if (await isBuilding(env.workDirPath)(buildParam)) {
       throw new Error('already accepted');
     }
     try {
-      res.status(202).send({ ...buildParam, url });
+      res.status(202).send({ ...buildParam, urlView, urlInfo });
       res.end();
       const buildDiffImages = buildDiffImagesFromS3(env.workDirPath, s3param);
       const result = await buildDiffImages(buildParam, (per, label) => {
         console.log(`progress: ${per}% ${label}`);
       });
-      if (slackIncoming) await postFinishMessage(slackIncoming)(result, url);
+      if (slackIncoming) await postFinishMessage(slackIncoming)(result, urlView);
     } catch (err) {
       if (slackIncoming) postErrorMessage(slackIncoming)(err);
       console.error(err);
