@@ -30,16 +30,20 @@ export const resource:
   try {
     const { slackIncoming } = req.body;
     const buildParam = extractBuildParam(req.body);
+    const url = `${env.appUri}/builds?${stringify(buildParam)}`;
     if (await isBuilding(env.workDirPath)(buildParam)) {
       throw new Error('already accepted');
     }
     try {
-      res.status(202).send({ ...buildParam });
+      res.status(202).send({ ...buildParam, url });
       res.end();
+      console.log(s3param);
       const buildDiffImages = buildDiffImagesFromS3(env.workDirPath, s3param);
-      const result = await buildDiffImages(buildParam);
-      const uri = `${env.appUri}/builds?${stringify(buildParam)}`;
-      if (slackIncoming) await postFinishMessage(slackIncoming)(result, uri);
+      const result = await buildDiffImages(buildParam, (a, b) => {
+        console.log(a);
+        console.log(b);
+      });
+      if (slackIncoming) await postFinishMessage(slackIncoming)(result, url);
     } catch (err) {
       if (slackIncoming) postErrorMessage(slackIncoming)(err);
       console.error(err);
