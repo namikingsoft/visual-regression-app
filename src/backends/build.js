@@ -55,11 +55,15 @@ export const resource:
 .get(route, async (req, res) => {
   try {
     const buildParam = extractBuildParam(req.query);
+    if (await isBuilding(env.workDirPath)(buildParam)) {
+      res.status(201).send('Waiting ...');
+      return;
+    }
     const { hashed, resultJsonPath } = getWorkLocation(env.workDirPath)(buildParam);
     const result = JSON.parse(await getTextFile(resultJsonPath));
     res.status(200).send(getResource(result)(`${env.appUri}/assets/${hashed}`));
   } catch (err) {
-    res.status(404).send({ error: err.message });
+    res.status(404).send('404 Not Found');
     throw err;
   }
 });
