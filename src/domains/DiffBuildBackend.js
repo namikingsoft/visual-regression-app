@@ -92,7 +92,7 @@ export const extractBuildParam:
   expectId: x.expectId,
   actualId: x.actualId,
   threshold: Number(x.threshold || defaultThreshold),
-  pathFilters: R.flatten([x.pathFilters || []]),
+  pathFilters: x.pathFilters ? R.flatten([x.pathFilters]) : [],
 });
 
 export const createPathFilter:
@@ -276,7 +276,7 @@ export const buildDiffImagesFromS3:
     actualId,
     threshold,
   } = buildParam;
-  const pathFilter = createPathFilter(buildParam.pathFilters);
+  // const pathFilter = createPathFilter(buildParam.pathFilters);
   const locate = getWorkLocation(workDirPath)(buildParam);
   if (await isBuilding(workDirPath)(buildParam)) {
     throw new Error('already accepted');
@@ -303,6 +303,8 @@ export const buildDiffImagesFromS3:
       ...pairPath,
       diffImage: locate.diffDirPath,
     });
+    console.log('result');
+    console.log(images);
     if (progress) progress(80, 'composeDiffImages');
     await composeImageDiffByDir({
       ...pairPath,
