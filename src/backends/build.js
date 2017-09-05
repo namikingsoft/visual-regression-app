@@ -37,12 +37,8 @@ export const resource:
     try {
       res.status(202).send({ ...buildParam, url });
       res.end();
-      console.log(s3param);
       const buildDiffImages = buildDiffImagesFromS3(env.workDirPath, s3param);
-      const result = await buildDiffImages(buildParam, (a, b) => {
-        console.log(a);
-        console.log(b);
-      });
+      const result = await buildDiffImages(buildParam);
       if (slackIncoming) await postFinishMessage(slackIncoming)(result, url);
     } catch (err) {
       if (slackIncoming) postErrorMessage(slackIncoming)(err);
