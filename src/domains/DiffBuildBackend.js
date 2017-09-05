@@ -126,14 +126,8 @@ export const createImageDiffByDir:
   }
   const imageMap1 = await scanDirWithKey(actualImage);
   const imageMap2 = await scanDirWithKey(expectedImage);
-  console.log(imageMap1);
-  console.log(imageMap2);
   return pipe(
     R.keys,
-    x => {
-      console.log(x);
-      return x;
-    },
     R.filter(x => imageMap1[x] && imageMap2[x]),
     R.map(async x => ({
       ...await createImageDiff({
