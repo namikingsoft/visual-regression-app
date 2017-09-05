@@ -72,8 +72,8 @@ export type WorkLocation = {
 
 export const getWorkLocation:
   Path => BuildParam => WorkLocation
-= workDirPath => identifier => {
-  const hashed = hash(identifier);
+= workDirPath => buildParam => {
+  const hashed = hash(buildParam);
   const dirpath = `${workDirPath}/${hashed}`;
   return {
     hashed,
@@ -91,8 +91,8 @@ export const extractBuildParam:
 = x => ({
   expectId: x.expectId,
   actualId: x.actualId,
-  threshold: x.threshold || defaultThreshold,
-  pathFilters: x.pathFilters || [],
+  threshold: Number(x.threshold || defaultThreshold),
+  pathFilters: R.flatten([x.pathFilters]),
 });
 
 export const createPathFilter:
