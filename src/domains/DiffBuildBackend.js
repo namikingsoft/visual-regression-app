@@ -3,7 +3,7 @@ import del from 'del';
 import im from 'imagemagick';
 import { getFullResult } from 'image-diff';
 import R, { pipe, always, is } from 'ramda';
-import { returnPromiseAll } from 'utils/functional';
+import { returnPromiseAll, mapSeriesPromise } from 'utils/functional';
 import { scanDirWithKey, getTextFile, putFile, exists, stat } from 'utils/file';
 import { hash } from 'utils/crypt';
 import { postMessage } from 'domains/Slack';
@@ -134,19 +134,16 @@ export const createImageDiffByDir:
     R.keys,
     R.filter(x => imageMap1[x] && imageMap2[x]),
   )(imageMap1);
-  return pipe(
-    R.map(async x => {
-      const result = await createImageDiff({
-        actualImage: imageMap1[x],
-        expectedImage: imageMap2[x],
-        diffImage: `${diffImage}${x}`,
-      });
-      doneCount += 1;
-      if (progress) progress(doneCount, pathes.length);
-      return { ...result, path: x };
-    }),
-    returnPromiseAll,
-  )(pathes);
+  return mapSeriesPromise(async x => {
+    const result = await createImageDiff({
+      actualImage: imageMap1[x],
+      expectedImage: imageMap2[x],
+      diffImage: `${diffImage}${x}`,
+    });
+    doneCount += 1;
+    if (progress) progress(doneCount, pathes.length);
+    return { ...result, path: x };
+  })(pathes);
 };
 
 export const composeImageDiff:

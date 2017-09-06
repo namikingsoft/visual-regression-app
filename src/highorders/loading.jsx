@@ -48,7 +48,7 @@ const loadingHOC:
             indicating
             autoSuccess
           >
-            {t('progress')[progress.label] || progress.label}
+            {t('progress')[(progress.label: any)] || progress.label}
           </Progress>
         }
       </Container>
