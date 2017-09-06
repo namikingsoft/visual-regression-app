@@ -32,6 +32,9 @@ export type ImageWithoutDiffParam = {
 
 export type ImageDiffParam = ImageWithoutDiffParam & {
   diffImage: Path,
+};
+
+export type ImageDiffParamWithPathFilter = ImageDiffParam & {
   pathFilter?: Path => boolean,
 };
 
@@ -123,7 +126,7 @@ export const createImageDiff:
 });
 
 export const createImageDiffByDir:
-  (ImageDiffParam, ImageProgressCallback | void) => Promise<ImageDiff[]>
+  (ImageDiffParamWithPathFilter, ImageProgressCallback | void) => Promise<ImageDiff[]>
 = async ({ actualImage, expectedImage, diffImage, pathFilter }, progress) => {
   if (!(await exists(actualImage) && exists(await expectedImage))) {
     throw new Error('not found images for diff');
@@ -286,7 +289,7 @@ export const buildDiffImagesFromS3:
     actualPath,
     threshold,
   } = buildParam;
-  // const pathFilter = createPathFilter(buildParam.pathFilters);
+  const pathFilter = createPathFilter(buildParam.pathFilters);
   const locate = getWorkLocation(workDirPath)(buildParam);
   if (await isBuilding(workDirPath)(buildParam)) {
     throw new Error('already accepted');
@@ -312,6 +315,7 @@ export const buildDiffImagesFromS3:
     const images = await createImageDiffByDir({
       ...pairPath,
       diffImage: locate.diffDirPath,
+      pathFilter,
     }, (i, size) => {
       if (progress) progress(60, `Image Diff Progress ... (${i} / ${size})`);
     });
