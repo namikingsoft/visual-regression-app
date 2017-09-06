@@ -32,6 +32,7 @@ export type ImageWithoutDiffParam = {
 
 export type ImageDiffParam = ImageWithoutDiffParam & {
   diffImage: Path,
+  pathFilter?: Path => boolean,
 };
 
 export type ImageDiff = {
@@ -123,7 +124,7 @@ export const createImageDiff:
 
 export const createImageDiffByDir:
   (ImageDiffParam, ImageProgressCallback | void) => Promise<ImageDiff[]>
-= async ({ actualImage, expectedImage, diffImage }, progress) => {
+= async ({ actualImage, expectedImage, diffImage, pathFilter }, progress) => {
   if (!(await exists(actualImage) && exists(await expectedImage))) {
     throw new Error('not found images for diff');
   }
@@ -133,6 +134,7 @@ export const createImageDiffByDir:
   const pathes = pipe(
     R.keys,
     R.filter(x => imageMap1[x] && imageMap2[x]),
+    R.filter(pathFilter || R.T),
   )(imageMap1);
   return pipe(
     R.map(async x => {
