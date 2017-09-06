@@ -65,7 +65,7 @@ const Statistics = ({ diffBuild, t }: NoDispatchProps) =>
     />
     <Statistic>
       <Statistic.Value>
-        {`${diffBuild.maxPercentage.toFixed(4)}%`}
+        {`${(diffBuild.maxPercentage * 100).toFixed(4)}%`}
       </Statistic.Value>
       <Statistic.Label>
         {`${t('diffBuild.maxPercentage')} `}
@@ -73,11 +73,11 @@ const Statistics = ({ diffBuild, t }: NoDispatchProps) =>
           <Icon name="chevron left" color="green" />
         : <Icon name="chevron right" color="red" />
         }
-        {`${diffBuild.threshold}%`}
+        {`${diffBuild.threshold * 100}%`}
       </Statistic.Label>
     </Statistic>
     <Statistic
-      value={`${diffBuild.avgPercentage.toFixed(4)}%`}
+      value={`${(diffBuild.avgPercentage * 100).toFixed(4)}%`}
       label={t('diffBuild.avgPercentage')}
       size="small"
     />
@@ -99,7 +99,7 @@ const DiffImage = ({ image, dispatch }: { image: ImageDiff, dispatch: Dispatch }
     <h4 className={style.myDiffImageTitle}>
       <Label className={style.myDiffImagePercent} size="large" pointing="below">
         <Icon name="edit" />
-        {`${image.percentage} %`}
+        {`${image.percentage * 100} %`}
       </Label>
       {image.path}
     </h4>
