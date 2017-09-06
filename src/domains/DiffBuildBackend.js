@@ -15,8 +15,10 @@ type Path = string;
 type PathFilters = any;
 type Percent = number;
 type Message = string;
+type IndexCount = number;
+type MaxLength = number;
 type BuildProgressCallback = (Percent, Message) => any;
-type ImageProgressCallback = Message => any;
+type ImageProgressCallback = (IndexCount, MaxLength) => any;
 
 const defaultThreshold = 0.005; // %
 const waitAcceptedMinutes = 10;
@@ -125,21 +127,22 @@ export const createImageDiffByDir:
   if (!(await exists(actualImage) && exists(await expectedImage))) {
     throw new Error('not found images for diff');
   }
+  let doneCount = 0; // eslint-disable-line
   const imageMap1 = await scanDirWithKey(actualImage);
   const imageMap2 = await scanDirWithKey(expectedImage);
-  const mapIndexed: any = R.addIndex(R.map);
   const pathes = pipe(
     R.keys,
     R.filter(x => imageMap1[x] && imageMap2[x]),
   )(imageMap1);
   return pipe(
-    mapIndexed(async (x, i) => {
-      if (progress) progress(`(${i}/${pathes.length}) ${x}`);
+    R.map(async x => {
       const result = await createImageDiff({
         actualImage: imageMap1[x],
         expectedImage: imageMap2[x],
         diffImage: `${diffImage}${x}`,
       });
+      doneCount += 1;
+      if (progress) progress(doneCount, pathes.length);
       return { ...result, path: x };
     }),
     returnPromiseAll,
@@ -307,8 +310,8 @@ export const buildDiffImagesFromS3:
     const images = await createImageDiffByDir({
       ...pairPath,
       diffImage: locate.diffDirPath,
-    }, progressLabel => {
-      if (progress) progress(60, progressLabel);
+    }, (i, size) => {
+      if (progress) progress(60, `Progress ... (${i} / ${size})`);
     });
     if (progress) progress(80, 'composeDiffImages');
     await composeImageDiffByDir({
