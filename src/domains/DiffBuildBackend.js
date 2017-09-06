@@ -95,12 +95,15 @@ export const getWorkLocation:
 
 export const extractBuildParam:
   Object => BuildParam
-= x => ({
-  expectPath: x.expectPath,
-  actualPath: x.actualPath,
-  threshold: Number(x.threshold || defaultThreshold),
-  pathFilters: x.pathFilters ? R.flatten([x.pathFilters]) : [],
-});
+= x => {
+  if (x.expectPath === x.actualPath) throw new Error('same path');
+  return {
+    expectPath: x.expectPath,
+    actualPath: x.actualPath,
+    threshold: Number(x.threshold || defaultThreshold),
+    pathFilters: x.pathFilters ? R.flatten([x.pathFilters]) : [],
+  };
+};
 
 export const createPathFilter:
   PathFilters => Path => boolean
