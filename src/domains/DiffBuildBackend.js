@@ -15,7 +15,8 @@ type Path = string;
 type PathFilters = any;
 type Percent = number;
 type Message = string;
-type ProgressCallback = (Percent, Message) => any;
+type BuildProgressCallback = (Percent, Message) => any;
+type ImageProgressCallback = Message => any;
 
 const defaultThreshold = 0.005; // %
 const waitAcceptedMinutes = 10;
@@ -119,26 +120,30 @@ export const createImageDiff:
 });
 
 export const createImageDiffByDir:
-  ImageDiffParam => Promise<ImageDiff[]>
-= async ({ actualImage, expectedImage, diffImage }) => {
+  (ImageDiffParam, ImageProgressCallback | void) => Promise<ImageDiff[]>
+= async ({ actualImage, expectedImage, diffImage }, progress) => {
   if (!(await exists(actualImage) && exists(await expectedImage))) {
     throw new Error('not found images for diff');
   }
   const imageMap1 = await scanDirWithKey(actualImage);
   const imageMap2 = await scanDirWithKey(expectedImage);
-  return pipe(
+  const mapIndexed: any = R.addIndex(R.map);
+  const pathes = pipe(
     R.keys,
     R.filter(x => imageMap1[x] && imageMap2[x]),
-    R.map(async x => ({
-      ...await createImageDiff({
+  )(imageMap1);
+  return pipe(
+    mapIndexed(async (x, i) => {
+      if (progress) progress(`(${i}/${pathes.length}) ${x}`);
+      const result = await createImageDiff({
         actualImage: imageMap1[x],
         expectedImage: imageMap2[x],
         diffImage: `${diffImage}${x}`,
-      }),
-      path: x,
-    })),
+      });
+      return { ...result, path: x };
+    }),
     returnPromiseAll,
-  )(imageMap1);
+  )(pathes);
 };
 
 export const composeImageDiff:
@@ -269,7 +274,7 @@ export const isBuilding:
 };
 
 export const buildDiffImagesFromS3:
-  (Path, S3Param) => (BuildParam, ProgressCallback | void) => Promise<ImageDiffResult>
+  (Path, S3Param) => (BuildParam, BuildProgressCallback | void) => Promise<ImageDiffResult>
 = (workDirPath, s3Param) => async (buildParam, progress) => {
   const {
     expectPath,
@@ -302,6 +307,8 @@ export const buildDiffImagesFromS3:
     const images = await createImageDiffByDir({
       ...pairPath,
       diffImage: locate.diffDirPath,
+    }, progressLabel => {
+      if (progress) progress(60, progressLabel);
     });
     if (progress) progress(80, 'composeDiffImages');
     await composeImageDiffByDir({
