@@ -216,7 +216,7 @@ const InOutImages = ({ diffBuild, t }: NoDispatchProps) => (
             <ModalImage image={<Item.Image src={x.imagePath} />} />
             <Item.Content verticalAlign="middle">
               <Item.Header style={{ fontWeight: 'normal' }}>
-                <Icon name="plus" color="green" size="huge" /> {x.path}
+                <Icon name="delete" color="red" size="huge" /> {x.path}
               </Item.Header>
             </Item.Content>
           </Item>
