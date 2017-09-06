@@ -44,8 +44,8 @@ export type S3Param = {
 };
 
 export type BuildParam = {
-  expectId: string,
-  actualId: string,
+  expectPath: string,
+  actualPath: string,
   threshold: number,
   pathFilters?: string[],
 };
@@ -89,8 +89,8 @@ export const getWorkLocation:
 export const extractBuildParam:
   Object => BuildParam
 = x => ({
-  expectId: x.expectId,
-  actualId: x.actualId,
+  expectPath: x.expectPath,
+  actualPath: x.actualPath,
   threshold: Number(x.threshold || defaultThreshold),
   pathFilters: x.pathFilters ? R.flatten([x.pathFilters]) : [],
 });
@@ -272,8 +272,8 @@ export const buildDiffImagesFromS3:
   (Path, S3Param) => (BuildParam, ProgressCallback | void) => Promise<ImageDiffResult>
 = (workDirPath, s3Param) => async (buildParam, progress) => {
   const {
-    expectId,
-    actualId,
+    expectPath,
+    actualPath,
     threshold,
   } = buildParam;
   // const pathFilter = createPathFilter(buildParam.pathFilters);
@@ -287,12 +287,12 @@ export const buildDiffImagesFromS3:
     if (progress) progress(20, 'downloadActualArtifacts');
     await downloadDirFromS3(s3Param)({
       Bucket: s3Param.bucketName,
-      Prefix: expectId,
+      Prefix: expectPath,
     }, locate.expectDirPath);
     if (progress) progress(40, 'downloadExpectArtifacts');
     await downloadDirFromS3(s3Param)({
       Bucket: s3Param.bucketName,
-      Prefix: actualId,
+      Prefix: actualPath,
     }, locate.actualDirPath);
     if (progress) progress(60, 'makeDiffImages');
     const pairPath = {
