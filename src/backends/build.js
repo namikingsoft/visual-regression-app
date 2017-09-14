@@ -3,6 +3,7 @@ import type { $Application } from 'express';
 import type { $SocketIO } from 'socket.io';
 import { stringify } from 'query-string';
 import { getTextFile } from 'utils/file';
+import { hash } from 'utils/crypt';
 import {
   extractBuildParam,
   getWorkLocation,
@@ -56,7 +57,7 @@ export const resource:
   try {
     const buildParam = extractBuildParam(req.query);
     if (await isBuilding(env.workDirPath)(buildParam)) {
-      res.status(201).send('Waiting ...');
+      res.status(423).send('Waiting ...'); // lock
       return;
     }
     const { hashed, resultJsonPath } = getWorkLocation(env.workDirPath)(buildParam);
@@ -68,23 +69,31 @@ export const resource:
   }
 });
 
-export const socket:
+const joinRoom = roomName => client => new Promise((resolve, reject) => (
+  client.join(roomName, err => (err ? reject(err) : resolve()))
+));
+
+export const socketFront:
   $SocketIO => $SocketIO
-= io => io.on('connection', client => client
+= io => io.on('connection', socket => socket
   .on('DiffBuild/RUN', async ({ payload }) => {
     try {
       const buildParam = extractBuildParam(payload);
+      const roomName = hash(buildParam);
+      await joinRoom(roomName)(socket);
       if (await isBuilding(env.workDirPath)(buildParam)) {
         await untilFinishBuilding(env.workDirPath)(buildParam);
       } else {
         const buildDiffImages = buildDiffImagesFromS3(env.workDirPath, s3param);
         await buildDiffImages(buildParam, (percent, label) => {
-          client.emit('DiffBuild/PROGRESS', { percent, label });
+          console.log(`progress: ${percent}% ${label}`);
+          socket.emit('DiffBuild/PROGRESS', { percent, label });
+          socket.broadcast.to(roomName).emit('DiffBuild/PROGRESS', { percent, label });
         });
       }
-      client.emit('DiffBuild/RUN', { status: true, payload });
+      socket.emit('DiffBuild/RUN', { status: true, payload });
     } catch (err) {
-      client.emit('DiffBuild/RUN', { status: false, error: err.message });
+      socket.emit('DiffBuild/RUN', { status: false, error: err.message });
       throw err;
     }
   }),

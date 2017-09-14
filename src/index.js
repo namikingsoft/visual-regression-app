@@ -24,7 +24,7 @@ const sockets:
   net$Server => $SocketIO
 = pipe(
   common.createSocketServer,
-  build.socket,
+  build.socketFront,
 );
 
 export const startDevelopment:
