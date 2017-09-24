@@ -57,6 +57,10 @@ export type BuildParam = {
   pathFilters?: string[],
 };
 
+export type BuildParamByCLI = BuildParam & {
+  outputPath: string,
+};
+
 export type ImageDiffResult = {
   newImages: Path[],
   delImages: Path[],
@@ -351,6 +355,59 @@ export const buildDiffImagesFromS3:
     return result;
   } catch (err) {
     await del(locate.touchFilePath, { force: true });
+    throw err;
+  }
+};
+
+export const buildDiffImagesFromLocal:
+  (BuildParamByCLI, BuildProgressCallback | void) => Promise<ImageDiffResult>
+= async (buildParam, progress) => {
+  const {
+    actualPath,
+    expectPath,
+    outputPath,
+    threshold,
+  } = buildParam;
+  const pathFilter = createPathFilter(buildParam.pathFilters);
+  await del(outputPath, { force: true });
+  try {
+    if (progress) progress(0, 'makeDiffImages');
+    const pairPath = {
+      actualImage: actualPath,
+      expectedImage: expectPath,
+    };
+    const images = await createImageDiffByDir({
+      ...pairPath,
+      diffImage: outputPath,
+      pathFilter,
+    }, (i, size) => {
+      if (progress) progress(40, `Image Diff Progress ... (${i} / ${size})`);
+    });
+    if (progress) progress(80, 'composeDiffImages');
+    await composeImageDiffByDir({
+      ...pairPath,
+      diffImage: outputPath,
+    });
+    if (progress) progress(100, 'complete');
+    return {
+      newImages: await getNewImagePathes(pairPath),
+      delImages: await getDelImagePathes(pairPath),
+      avgPercentage:
+        pipe(
+          R.map(x => x.percentage),
+          R.mean,
+        )(images),
+      maxPercentage:
+        pipe(
+          R.map(x => x.percentage),
+          R.reduce(R.max, 0),
+        )(images),
+      diffCount:
+        R.filter(x => x.percentage > 0)(images).length,
+      images,
+      threshold,
+    };
+  } catch (err) {
     throw err;
   }
 };
