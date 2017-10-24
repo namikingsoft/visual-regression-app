@@ -1,14 +1,16 @@
 // @flow
+import fs from 'fs';
 import del from 'del';
-import im from 'imagemagick';
-import { getFullResult } from 'image-diff';
+// import im from 'imagemagick';
 import R, { pipe, always, is } from 'ramda';
 import { returnPromiseAll } from 'utils/functional';
-import { scanDirWithKey, getTextFile, putFile, exists, stat } from 'utils/file';
+import { scanDirWithKey, getTextFile, mkdirWithFile, putFile, exists, stat } from 'utils/file';
 import { hash } from 'utils/crypt';
 import { postMessage } from 'domains/Slack';
 import { downloadDirFromS3 } from 'utils/s3';
+import { post } from 'utils/request';
 import type { SlackIncoming, MessageResponce } from 'domains/Slack';
+import * as env from 'env';
 
 type Uri = string;
 type Path = string;
@@ -25,6 +27,16 @@ const waitAcceptedMinutes = 10;
 const checkFinishCountLimit = 60; // 5 min
 const checkFinishDeltaMsec = 5000;
 
+export type WorkLocation = {
+  hashed: string,
+  dirpath: Path,
+  actualDirPath: Path,
+  expectDirPath: Path,
+  diffDirPath: Path,
+  resultJsonPath: Path,
+  touchFilePath: Path,
+}
+
 export type ImageWithoutDiffParam = {
   actualImage: Path,
   expectedImage: Path,
@@ -32,6 +44,9 @@ export type ImageWithoutDiffParam = {
 
 export type ImageDiffParam = ImageWithoutDiffParam & {
   diffImage: Path,
+  expectPath: string,
+  actualPath: string,
+  locate: WorkLocation,
 };
 
 export type ImageDiffParamWithPathFilter = ImageDiffParam & {
@@ -66,16 +81,6 @@ export type ImageDiffResult = {
   images: ImageDiff[],
   threshold: number,
 };
-
-export type WorkLocation = {
-  hashed: string,
-  dirpath: Path,
-  actualDirPath: Path,
-  expectDirPath: Path,
-  diffDirPath: Path,
-  resultJsonPath: Path,
-  touchFilePath: Path,
-}
 
 export const getWorkLocation:
   Path => BuildParam => WorkLocation
@@ -124,13 +129,33 @@ export const createPathFilter:
 
 export const createImageDiff:
   ImageDiffParam => Promise<ImageDiff>
-= param => new Promise((resolve, reject) => {
-  getFullResult(param, (err, result) => (err ? reject(err) : resolve(result)));
-});
+= async param => {
+  const stripExpect = R.replace(new RegExp(`^${param.locate.expectDirPath}`), '');
+  const stripActual = R.replace(new RegExp(`^${param.locate.actualDirPath}`), '');
+  const s3url = `http://${env.awsS3BucketName}.s3-website-ap-northeast-1.amazonaws.com/`;
+  const actual = `${s3url}${param.actualPath}${stripActual(param.actualImage)}`;
+  const expect = `${s3url}${param.expectPath}${stripExpect(param.expectedImage)}`;
+  const apiurl = 'https://gt472zlnaa.execute-api.ap-northeast-1.amazonaws.com/dev/image/diff';
+  const result = await post()(apiurl)({
+    mode: 'strict',
+    actual,
+    expect,
+  });
+  await mkdirWithFile(param.diffImage);
+  await new Promise((resolve, reject) => {
+    fs.writeFile(param.diffImage, new Buffer(result.image, 'base64'), err => (
+      err ? reject(err) : resolve()
+    ));
+  });
+  return {
+    total: 1,
+    percentage: result.percent,
+  };
+};
 
 export const createImageDiffByDir:
   (ImageDiffParamWithPathFilter, ImageProgressCallback | void) => Promise<ImageDiff[]>
-= async ({ actualImage, expectedImage, diffImage, pathFilter }, progress) => {
+= async ({ actualImage, expectedImage, diffImage, pathFilter, ...rest }, progress) => {
   if (!(await exists(actualImage) && exists(await expectedImage))) {
     throw new Error('not found images for diff');
   }
@@ -148,6 +173,7 @@ export const createImageDiffByDir:
         actualImage: imageMap1[x],
         expectedImage: imageMap2[x],
         diffImage: `${diffImage}${x}`,
+        ...rest,
       });
       doneCount += 1;
       if (progress) progress(doneCount, pathes.length);
@@ -157,37 +183,37 @@ export const createImageDiffByDir:
   )(pathes);
 };
 
-export const composeImageDiff:
-  ImageDiffParam => Promise<void>
-= ({ actualImage, diffImage }) => new Promise((resolve, reject) => im.convert(
-  [
-    actualImage,
-    diffImage,
-    '-gravity',
-    'southeast',
-    '-compose',
-    'over',
-    '-composite',
-    diffImage,
-  ],
-  err => (err ? reject(err) : resolve()),
-));
-
-export const composeImageDiffByDir:
-  ImageDiffParam => Promise<void>
-= async ({ actualImage, diffImage }) => {
-  const imageMap1 = await scanDirWithKey(diffImage);
-  const imageMap2 = await scanDirWithKey(actualImage);
-  return pipe(
-    R.keys,
-    R.map(x => composeImageDiff({
-      diffImage: imageMap1[x],
-      actualImage: imageMap2[x],
-      expectedImage: '',
-    })),
-    returnPromiseAll,
-  )(imageMap1);
-};
+// export const composeImageDiff:
+//   ImageDiffParam => Promise<void>
+// = ({ actualImage, diffImage }) => new Promise((resolve, reject) => im.convert(
+//   [
+//     actualImage,
+//     diffImage,
+//     '-gravity',
+//     'southeast',
+//     '-compose',
+//     'over',
+//     '-composite',
+//     diffImage,
+//   ],
+//   err => (err ? reject(err) : resolve()),
+// ));
+//
+// export const composeImageDiffByDir:
+//   ImageDiffParam => Promise<void>
+// = async ({ actualImage, diffImage }) => {
+//   const imageMap1 = await scanDirWithKey(diffImage);
+//   const imageMap2 = await scanDirWithKey(actualImage);
+//   return pipe(
+//     R.keys,
+//     R.map(x => composeImageDiff({
+//       diffImage: imageMap1[x],
+//       actualImage: imageMap2[x],
+//       expectedImage: '',
+//     })),
+//     returnPromiseAll,
+//   )(imageMap1);
+// };
 
 export const getNewImagePathes:
   ImageWithoutDiffParam => Promise<Path[]>
@@ -319,14 +345,17 @@ export const buildDiffImagesFromS3:
       ...pairPath,
       diffImage: locate.diffDirPath,
       pathFilter,
+      locate,
+      expectPath,
+      actualPath,
     }, (i, size) => {
-      if (progress) progress(60, `Image Diff Progress ... (${i} / ${size})`);
+      if (progress) progress(80, `Image Diff Progress ... (${i} / ${size})`);
     });
-    if (progress) progress(80, 'composeDiffImages');
-    await composeImageDiffByDir({
-      ...pairPath,
-      diffImage: locate.diffDirPath,
-    });
+    // if (progress) progress(80, 'composeDiffImages');
+    // await composeImageDiffByDir({
+    //   ...pairPath,
+    //   diffImage: locate.diffDirPath,
+    // });
     if (progress) progress(100, 'complete');
     const result = {
       newImages: await getNewImagePathes(pairPath),
