@@ -5,8 +5,8 @@ import { connect } from 'react-redux';
 import { compose } from 'recompose';
 import type { TFunction } from 'i18next';
 import {
+  Divider,
   Grid,
-  Accordion,
   Icon,
   Item,
   Label,
@@ -180,17 +180,13 @@ const DiffImages = ({ diffBuild, dispatch, t }: Props) =>
     {listManyDiffImages(diffBuild).map(x => (
       <DiffImage key={x.path} image={x} dispatch={dispatch} />
     ))}
-    <Accordion className={style.myDiffImagesLesses}>
-      <Accordion.Title>
-        <Icon name="dropdown" />
-        {t('diffBuild.lessDifferenceImages')}
-      </Accordion.Title>
-      <Accordion.Content>
-        {listLessDiffImages(diffBuild).map(x => (
-          <DiffImage key={x.path} image={x} dispatch={dispatch} />
-        ))}
-      </Accordion.Content>
-    </Accordion>
+    <Divider horizontal section>
+      <Icon name="thumbs outline up" color="green" />
+      LESS DIFF
+    </Divider>
+    {listLessDiffImages(diffBuild).map(x => (
+      <DiffImage key={x.path} image={x} dispatch={dispatch} />
+    ))}
   </div>
 ;
 
