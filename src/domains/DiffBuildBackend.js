@@ -1,7 +1,6 @@
 // @flow
 import fs from 'fs';
 import del from 'del';
-// import im from 'imagemagick';
 import R, { pipe, always, is } from 'ramda';
 import { returnPromiseAll } from 'utils/functional';
 import { scanDirWithKey, getTextFile, mkdirWithFile, putFile, exists, stat } from 'utils/file';
@@ -47,6 +46,7 @@ export type ImageDiffParam = ImageWithoutDiffParam & {
   expectPath: string,
   actualPath: string,
   locate: WorkLocation,
+  mode: string,
 };
 
 export type ImageDiffParamWithPathFilter = ImageDiffParam & {
@@ -66,6 +66,7 @@ export type S3Param = {
 };
 
 export type BuildParam = {
+  mode: string,
   expectPath: string,
   actualPath: string,
   threshold: number,
@@ -103,6 +104,7 @@ export const extractBuildParam:
 = x => {
   if (x.expectPath === x.actualPath) throw new Error('same path');
   return {
+    mode: x.mode || 'strict',
     expectPath: x.expectPath,
     actualPath: x.actualPath,
     threshold: Number(x.threshold || defaultThreshold),
@@ -137,7 +139,7 @@ export const createImageDiff:
   const expect = `${s3url}${param.expectPath}${stripExpect(param.expectedImage)}`;
   const apiurl = 'https://gt472zlnaa.execute-api.ap-northeast-1.amazonaws.com/dev/image/diff';
   const result = await post()(apiurl)({
-    mode: 'strict',
+    mode: param.mode,
     actual,
     expect,
   });
@@ -314,6 +316,7 @@ export const buildDiffImagesFromS3:
   (Path, S3Param) => (BuildParam, BuildProgressCallback | void) => Promise<ImageDiffResult>
 = (workDirPath, s3Param) => async (buildParam, progress) => {
   const {
+    mode,
     expectPath,
     actualPath,
     threshold,
@@ -348,6 +351,7 @@ export const buildDiffImagesFromS3:
       locate,
       expectPath,
       actualPath,
+      mode,
     }, (i, size) => {
       if (progress) progress(80, `Image Diff Progress ... (${i} / ${size})`);
     });
