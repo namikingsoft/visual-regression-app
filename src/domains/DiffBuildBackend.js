@@ -222,8 +222,8 @@ const countLessDiff:
 = x => x.images.filter(y => y.percentage <= x.threshold && y.percentage > 0).length;
 
 export const postFinishMessage:
-  SlackIncoming => (ImageDiffResult, Uri) => Promise<MessageResponce>
-= slackIncoming => (result, uri) => postMessage(slackIncoming)({
+  SlackIncoming => (ImageDiffResult, Uri, string | void) => Promise<MessageResponce>
+= slackIncoming => (result, uri, label) => postMessage(slackIncoming)({
   attachments: [{
     fallback: 'Finish building images',
     color: result.maxPercentage > result.threshold ? '#cc0000' : '#36a64f',
@@ -251,6 +251,7 @@ export const postFinishMessage:
     ],
     footer: 'Finish building image diff',
     ts: Math.floor(new Date().getTime() / 1000),
+    ...(label ? { text: label, pretext: label } : {}),
   }],
 });
 

@@ -29,7 +29,7 @@ export const resource:
 = route => app => (app: any)
 .post(route, async (req, res) => {
   try {
-    const { slackIncoming } = req.body;
+    const { slackIncoming, slackLabel } = req.body;
     const buildParam = extractBuildParam(req.body);
     const urlView = `${env.appUri}/builds?${stringify(buildParam)}`;
     const urlInfo = `${env.appUri}${route}?${stringify(buildParam)}`;
@@ -43,7 +43,9 @@ export const resource:
       const result = await buildDiffImages(buildParam, (per, label) => {
         console.log(`progress: ${per}% ${label}`);
       });
-      if (slackIncoming) await postFinishMessage(slackIncoming)(result, urlView);
+      if (slackIncoming) {
+        await postFinishMessage(slackIncoming)(result, urlView, slackLabel);
+      }
     } catch (err) {
       if (slackIncoming) postErrorMessage(slackIncoming)(err);
       console.error(err);
