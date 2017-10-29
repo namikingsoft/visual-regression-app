@@ -191,38 +191,6 @@ export const createImageDiffByDir:
   )(pathes);
 };
 
-// export const composeImageDiff:
-//   ImageDiffParam => Promise<void>
-// = ({ actualImage, diffImage }) => new Promise((resolve, reject) => im.convert(
-//   [
-//     actualImage,
-//     diffImage,
-//     '-gravity',
-//     'southeast',
-//     '-compose',
-//     'over',
-//     '-composite',
-//     diffImage,
-//   ],
-//   err => (err ? reject(err) : resolve()),
-// ));
-//
-// export const composeImageDiffByDir:
-//   ImageDiffParam => Promise<void>
-// = async ({ actualImage, diffImage }) => {
-//   const imageMap1 = await scanDirWithKey(diffImage);
-//   const imageMap2 = await scanDirWithKey(actualImage);
-//   return pipe(
-//     R.keys,
-//     R.map(x => composeImageDiff({
-//       diffImage: imageMap1[x],
-//       actualImage: imageMap2[x],
-//       expectedImage: '',
-//     })),
-//     returnPromiseAll,
-//   )(imageMap1);
-// };
-
 export const getNewImagePathes:
   ImageWithoutDiffParam => Promise<Path[]>
 = async ({ actualImage, expectedImage }) => {
@@ -361,11 +329,6 @@ export const buildDiffImagesFromS3:
     }, (i, size) => {
       if (progress) progress(80, `Image Diff Progress ... (${i} / ${size})`);
     });
-    // if (progress) progress(80, 'composeDiffImages');
-    // await composeImageDiffByDir({
-    //   ...pairPath,
-    //   diffImage: locate.diffDirPath,
-    // });
     if (progress) progress(100, 'complete');
     const result = {
       newImages: await getNewImagePathes(pairPath),
