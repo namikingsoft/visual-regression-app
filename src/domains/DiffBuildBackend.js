@@ -251,7 +251,7 @@ export const postFinishMessage:
     ],
     footer: 'Finish building image diff',
     ts: Math.floor(new Date().getTime() / 1000),
-    ...(label ? { text: label, pretext: label } : {}),
+    ...(label ? { pretext: label } : {}),
   }],
 });
 
