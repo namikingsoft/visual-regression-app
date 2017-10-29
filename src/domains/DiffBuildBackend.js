@@ -46,7 +46,10 @@ export type ImageDiffParam = ImageWithoutDiffParam & {
   expectPath: string,
   actualPath: string,
   locate: WorkLocation,
-  mode: string,
+  mode?: string,
+  swidth?: number,
+  radius?: number,
+  colordist?: number,
 };
 
 export type ImageDiffParamWithPathFilter = ImageDiffParam & {
@@ -104,7 +107,10 @@ export const extractBuildParam:
 = x => {
   if (x.expectPath === x.actualPath) throw new Error('same path');
   return {
-    mode: x.mode || 'strict',
+    mode: x.mode,
+    radius: x.radius,
+    swidth: x.swidth,
+    colordist: x.colordist,
     expectPath: x.expectPath,
     actualPath: x.actualPath,
     threshold: Number(x.threshold || defaultThreshold),
@@ -139,7 +145,7 @@ export const createImageDiff:
   const expect = `${s3url}${param.expectPath}${stripExpect(param.expectedImage)}`;
   const apiurl = 'https://gt472zlnaa.execute-api.ap-northeast-1.amazonaws.com/dev/image/diff';
   const result = await post()(apiurl)({
-    mode: param.mode,
+    ...param,
     actual,
     expect,
   });
@@ -316,10 +322,10 @@ export const buildDiffImagesFromS3:
   (Path, S3Param) => (BuildParam, BuildProgressCallback | void) => Promise<ImageDiffResult>
 = (workDirPath, s3Param) => async (buildParam, progress) => {
   const {
-    mode,
     expectPath,
     actualPath,
     threshold,
+    ...restBuildParam
   } = buildParam;
   const pathFilter = createPathFilter(buildParam.pathFilters);
   const locate = getWorkLocation(workDirPath)(buildParam);
@@ -351,7 +357,7 @@ export const buildDiffImagesFromS3:
       locate,
       expectPath,
       actualPath,
-      mode,
+      ...restBuildParam,
     }, (i, size) => {
       if (progress) progress(80, `Image Diff Progress ... (${i} / ${size})`);
     });
