@@ -230,7 +230,7 @@ export const postFinishMessage:
     fields: [
       {
         title: 'Max Percentage',
-        value: `${result.maxPercentage} %`,
+        value: `${result.maxPercentage * 100} %`,
         short: true,
       },
       {
