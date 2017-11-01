@@ -108,9 +108,9 @@ export const extractBuildParam:
   if (x.expectPath === x.actualPath) throw new Error('same path');
   return {
     mode: x.mode,
-    radius: x.radius,
-    swidth: x.swidth,
-    colordist: x.colordist,
+    radius: x.radius && Number(x.radius),
+    swidth: x.swidth && Number(x.swidth),
+    colordist: x.colordist && Number(x.colordist),
     expectPath: x.expectPath,
     actualPath: x.actualPath,
     threshold: Number(x.threshold || defaultThreshold),
