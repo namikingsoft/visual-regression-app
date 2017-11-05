@@ -143,7 +143,7 @@ export const createImageDiff:
   const s3url = `http://${env.awsS3BucketName}.s3-website-ap-northeast-1.amazonaws.com/`;
   const actual = `${s3url}${param.actualPath}${stripActual(param.actualImage)}`;
   const expect = `${s3url}${param.expectPath}${stripExpect(param.expectedImage)}`;
-  const apiurl = 'https://gt472zlnaa.execute-api.ap-northeast-1.amazonaws.com/dev/image/diff';
+  const apiurl = 'https://38i287d8fj.execute-api.ap-northeast-1.amazonaws.com/dev/image/diff';
   const result = await post()(apiurl)({
     ...param,
     actual,
