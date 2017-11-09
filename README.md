@@ -1,4 +1,4 @@
-Image Diff App
+Visual Regression App
 ========================================
 This is Web Application that detected image difference.
 

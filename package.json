@@ -1,5 +1,5 @@
 {
-  "name": "ci-image-diff",
+  "name": "visual-regression-app",
   "version": "0.0.1",
   "license": "MIT",
   "main": "src/index.js",
