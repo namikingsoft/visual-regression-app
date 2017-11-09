@@ -19,7 +19,6 @@ const getOrDie:
   return ''; // dummy
 };
 
-export const cryptSecret = getOrDie('CRYPT_SECRET');
 export const port = Number(env.PORT || 3000);
 export const nodeEnv = env.NODE_ENV || 'development';
 export const workDirPath = '/tmp/imagediff';
