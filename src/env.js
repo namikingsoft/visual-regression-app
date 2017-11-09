@@ -28,3 +28,4 @@ export const appUri = nodeEnv === 'production' ?
 export const awsAccessKeyId = getOrDie('AWS_ACCESS_KEY_ID');
 export const awsSecretAccessKey = getOrDie('AWS_SECRET_ACCESS_KEY');
 export const awsS3BucketName = getOrDie('AWS_S3_BUCKET_NAME');
+export const imagediffApiEndtpoint = getOrDie('IMAGEDIFF_API_ENDPOINT');
