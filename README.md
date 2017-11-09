@@ -13,6 +13,9 @@ npm start
 http://localhost:3000
 ```
 
+Set up the following api for `IMAGEDIFF_API_ENDPOINT` in advance.
+https://github.com/namikingsoft/visual-regression-api
+
 
 Deploy to Heroku
 ----------------------------------------
