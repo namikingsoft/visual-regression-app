@@ -19,7 +19,7 @@ Deploy to Heroku
 ```bash
 heroku create
 heroku config:set NPM_CONFIG_PRODUCTION=false
-heroku config:set AWS_ACCESS_KEY_ID="*have s3 policy of image repository)"
+heroku config:set AWS_ACCESS_KEY_ID="(have s3 policy of image repository)"
 heroku config:set AWS_SECRET_ACCESS_KEY="(have s3 policy image repository)"
 heroku config:set AWS_S3_BUCKET_NAME="example-of-bucketname"
 heroku config:set IMAGEDIFF_API_ENDPOINT="https://****-api.ap-northeast-1.amazonaws.com/dev/image/diff"
